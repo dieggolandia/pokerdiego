@@ -140,31 +140,55 @@
     .pk-btn.raise { width:100%; order:3; padding:14px; font-size:15px; }
   }
 
-  .pk-bottom { display:grid; grid-template-columns: 1.3fr 1fr; gap:12px; margin-top:12px; }
-  @media (max-width: 720px) { .pk-bottom { grid-template-columns: 1fr; } }
-  .pk-log { height:150px; overflow-y:auto; font-size:12px; color: var(--muted); line-height:1.6; }
+  .pk-bottom { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+  @media (max-width: 560px) { .pk-bottom { grid-template-columns: 1fr; } }
+  .pk-details { background: var(--panel); border: 1px solid #2a4436; border-radius: 12px; padding: 4px 14px; }
+  .pk-details summary { cursor:pointer; list-style:none; font-size:13px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1px; padding:10px 0; display:flex; justify-content:space-between; align-items:center; }
+  .pk-details summary::-webkit-details-marker { display:none; }
+  .pk-details .chev { transition: transform .2s; font-size:14px; }
+  .pk-details[open] .chev { transform: rotate(180deg); }
+  .pk-details[open] summary { border-bottom: 1px solid #2a4436; margin-bottom:8px; }
+  .pk-log { max-height:150px; overflow-y:auto; font-size:12px; color: var(--muted); line-height:1.6; padding-bottom:10px; }
   .pk-log div { border-bottom: 1px solid rgba(255,255,255,0.05); padding:3px 0; }
-  .pk-stats { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .pk-stats { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding-bottom:10px; }
   .pk-stat { background:#0a1a12; border-radius:8px; padding:8px 10px; }
   .pk-stat .v { font-size:18px; font-weight:800; color: var(--gold); font-family:'SFMono-Regular',monospace; }
   .pk-stat .l { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); }
 
   @media (max-width: 640px){
     .pk-bottom { gap:10px; margin-top:10px; }
-    .pk-log { font-size:13px; height:130px; }
+    .pk-details summary { font-size:14px; padding:12px 0; }
+    .pk-log { font-size:13px; max-height:160px; }
     .pk-stat { padding:12px; }
     .pk-stat .v { font-size:20px; }
     .pk-stat .l { font-size:11px; }
   }
 
   .pk-overlay { position:absolute; inset:0; background:rgba(6,12,9,0.88); border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:5; gap:12px; padding:20px;}
+
+  .pk-winbanner { border-radius:12px; padding:12px 16px; margin:10px 0; display:flex; align-items:center; gap:12px; border:1px solid var(--gold); background: linear-gradient(90deg, rgba(212,175,55,0.16), rgba(212,175,55,0.04)); animation: pkPop .35s ease; }
+  .pk-winbanner.you { border-color:#4caf7d; background: linear-gradient(90deg, rgba(76,175,125,0.2), rgba(76,175,125,0.05)); }
+  .pk-winbanner .trophy { font-size:26px; flex-shrink:0; }
+  .pk-winbanner .wtitle { font-weight:800; font-size:15px; color: var(--gold); }
+  .pk-winbanner.you .wtitle { color:#69d99b; }
+  .pk-winbanner .wsub { font-size:12px; color: var(--muted); margin-top:2px; }
+  @keyframes pkPop { from{ transform:scale(0.94); opacity:0;} to{ transform:scale(1); opacity:1;} }
+
+  .pk-seat.winner { z-index:3; }
+  .pk-seat.winner .name { color: var(--gold); text-shadow: 0 0 8px rgba(212,175,55,0.8); }
+  .pk-seat.winner .cards .pk-card { box-shadow: 0 0 0 3px var(--gold), 0 2px 8px rgba(212,175,55,0.6); }
+  .pk-seat.winner .crown { font-size:16px; display:block; margin-bottom:2px; }
+
+  .pk-style-tag { font-size:10px; padding:2px 8px; border-radius:999px; border:1px solid; letter-spacing:0.5px; text-transform:uppercase; margin-left:6px; }
+  .pk-style-tag.loose { color:#e8a94a; border-color:#e8a94a; }
+  .pk-style-tag.tight { color:#7fb7e8; border-color:#7fb7e8; }
 </style>
 
 <div id="pk-root">
   <div class="pk-header">
     <div>
       <div class="pk-title">♠ Mesa de Treino — 8 Jogadores</div>
-      <div class="pk-sub" id="pk-handinfo">Mão #0 · Mesa solta (poucos folds)</div>
+      <div class="pk-sub" id="pk-handinfo">Mão #0</div>
     </div>
     <div class="pk-toggle-wrap">
       <span class="pk-toggle-label">Mostrar chance de vitória</span>
@@ -176,17 +200,19 @@
     <div class="pk-table" id="pk-table"></div>
   </div>
 
+  <div id="pk-winner-banner"></div>
+
   <div class="pk-panel" id="pk-you-panel"></div>
 
   <div class="pk-bottom">
-    <div class="pk-panel">
-      <h3 style="font-size:13px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Histórico da mesa</h3>
+    <details class="pk-details" id="pk-log-details">
+      <summary>Histórico da mesa <span class="chev">▾</span></summary>
       <div class="pk-log" id="pk-log"></div>
-    </div>
-    <div class="pk-panel">
-      <h3 style="font-size:13px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Sua sessão</h3>
+    </details>
+    <details class="pk-details" id="pk-stats-details">
+      <summary>Sua sessão <span class="chev">▾</span></summary>
       <div class="pk-stats" id="pk-stats"></div>
-    </div>
+    </details>
   </div>
 </div>
 
@@ -300,6 +326,8 @@
       showEquity: true, waitingHuman:false,
       stats: {handsPlayed:0, handsWon:0},
       gameOver:false,
+      tableStyle: 'loose',
+      lastResult: null,
     };
   }
   initState();
@@ -330,6 +358,8 @@
     S.dealerIndex = (S.dealerIndex+1) % NSEATS;
     S.stage='preflop';
     S.raisesThisStreet=0;
+    S.lastResult=null;
+    S.tableStyle = Math.random()<0.5 ? 'loose' : 'tight';
 
     for(let r=0;r<2;r++) for(let i=0;i<NSEATS;i++) S.players[i].hole.push(S.deck.pop());
 
@@ -341,6 +371,7 @@
     S.queue = order;
     S.log = [];
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
+    log(S.tableStyle==='loose' ? '🎲 Essa rodada a mesa está solta — galera paga mais fácil.' : '🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
     render();
     processQueue();
   }
@@ -402,16 +433,27 @@
     eq = eq/100;
     const toCall = S.currentBet - p.bet;
     const potOdds = toCall>0 ? toCall/(S.pot+toCall) : 0;
-    const looseness = 0.20; // mesa solta: chama mais fácil que o ideal
+    const isLoose = S.tableStyle==='loose';
+    // Mesa solta: chama fácil, raramente desiste. Mesa séria: mais disciplinada, foldam mais e blefam menos.
+    const looseness = isLoose ? 0.20 : 0.02;
+    const foldEqFloor = isLoose ? 0.10 : 0.24;
+    const foldEqChance = isLoose ? 0.4 : 0.7;
+    const potOddsFoldChance = isLoose ? 0.5 : 0.85;
+    const raiseThresholdHigh = isLoose ? 0.60 : 0.68;
+    const raiseThresholdVeryHigh = isLoose ? 0.78 : 0.86;
+    const raiseChanceHigh = isLoose ? 0.35 : 0.28;
+    const raiseChanceVeryHigh = isLoose ? 0.55 : 0.45;
+    const reraiseThreshold = isLoose ? 0.72 : 0.80;
+    const reraiseChance = isLoose ? 0.32 : 0.22;
     if(toCall<=0){
-      if(eq>0.78 && Math.random()<0.55) return {action:'raise', amount: p.bet+Math.min(p.chips, Math.round((S.pot||20)*0.9))};
-      if(eq>0.60 && Math.random()<0.35) return {action:'raise', amount: p.bet+Math.min(p.chips, Math.round((S.pot||20)*0.55))};
+      if(eq>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, Math.round((S.pot||20)*0.9))};
+      if(eq>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, Math.round((S.pot||20)*0.55))};
       return {action:'check', amount:0};
     } else {
       const capped = Math.min(toCall, p.chips);
-      if(eq + looseness < potOdds && S.raisesThisStreet>=2 && Math.random()<0.5) return {action:'fold', amount:0};
-      if(eq<0.10 && Math.random()<0.4) return {action:'fold', amount:0};
-      if(eq>0.72 && Math.random()<0.32 && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, Math.round((S.pot||20)*0.75))};
+      if(eq + looseness < potOdds && (isLoose ? S.raisesThisStreet>=2 : true) && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
+      if(eq<foldEqFloor && Math.random()<foldEqChance) return {action:'fold', amount:0};
+      if(eq>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, Math.round((S.pot||20)*0.75))};
       return {action:'call', amount:0};
     }
   }
@@ -430,9 +472,11 @@
   }
 
   function awardUncontested(winnerIdx){
+    const potWon = S.pot;
     S.players[winnerIdx].chips += S.pot;
     log(S.players[winnerIdx].name+' ganhou R$'+S.pot+' (todos os outros desistiram).');
     S.pot=0; S.stage='showdown'; S.waitingHuman=false;
+    S.lastResult = { winners:[winnerIdx], potWon, handName:null, uncontested:true };
     finishHand([winnerIdx]);
   }
 
@@ -441,6 +485,7 @@
     let bestEv=null;
     contenders.forEach(c=>{ if(!bestEv||compareEval(c.ev,bestEv)>0) bestEv=c.ev; });
     const winners = contenders.filter(c=>compareEval(c.ev,bestEv)===0);
+    const potWon = S.pot;
     const share = Math.floor(S.pot/winners.length);
     winners.forEach(w=> S.players[w.i].chips += share);
     log('Showdown — '+winners.map(w=>S.players[w.i].name).join(', ')+' venceu(ram) com '+HAND_NAMES[bestEv.category]+'.');
@@ -449,6 +494,7 @@
       log('  '+p.name+': '+p.hole.map(cc=>rlabel(cc.r)+SYM[cc.s]).join(' '));
     });
     S.pot=0; S.stage='showdown'; S.waitingHuman=false;
+    S.lastResult = { winners: winners.map(w=>w.i), potWon, handName: HAND_NAMES[bestEv.category], uncontested:false };
     finishHand(winners.map(w=>w.i));
   }
 
@@ -498,6 +544,7 @@
   // ---- render ----
   function render(){
     renderTable();
+    renderWinnerBanner();
     renderYouPanel();
     renderLog();
     renderStats();
@@ -518,7 +565,9 @@
       const y = 50 + 44*Math.sin(theta);
       const p = S.players[i];
       const isActing = S.queue[0]===i && (S.stage!=='idle' && S.stage!=='showdown');
-      html += '<div class="pk-seat'+(p.folded?' folded':'')+(isActing?' acting':'')+'" style="left:'+x+'%; top:'+y+'%;">';
+      const isWinner = S.stage==='showdown' && S.lastResult && S.lastResult.winners.includes(i);
+      html += '<div class="pk-seat'+(p.folded?' folded':'')+(isActing?' acting':'')+(isWinner?' winner':'')+'" style="left:'+x+'%; top:'+y+'%;">';
+      if(isWinner) html += '<span class="crown">👑</span>';
       html += '<div class="name">'+p.name+(p.isHuman?' (você)':'')+'</div>';
       html += '<div class="pos">'+(S.dealerIndex>=0?positionName(i):'')+'</div>';
       html += '<div class="cards">';
@@ -552,6 +601,23 @@
     if(others<=0) return null;
     const eq = calcEquity(p.hole, S.community, others, 350);
     return eq;
+  }
+
+  function renderWinnerBanner(){
+    const el = document.getElementById('pk-winner-banner');
+    if(S.stage!=='showdown' || !S.lastResult){ el.innerHTML=''; return; }
+    const r = S.lastResult;
+    const youWon = r.winners.includes(0);
+    const names = r.winners.map(i=> i===0 ? 'Você' : S.players[i].name).join(' e ');
+    let title, sub;
+    if(r.uncontested){
+      title = (youWon ? 'Você ganhou' : names+' ganhou') + ' R$'+r.potWon+'!';
+      sub = 'Todo mundo desistiu antes do showdown.';
+    } else {
+      title = (youWon ? 'Você venceu' : names+' venceu') + ' o pote de R$'+r.potWon+'!';
+      sub = 'Mão vencedora: '+r.handName+'.';
+    }
+    el.innerHTML = '<div class="pk-winbanner'+(youWon?' you':'')+'"><div class="trophy">'+(youWon?'🏆':'🃏')+'</div><div><div class="wtitle">'+title+'</div><div class="wsub">'+sub+'</div></div></div>';
   }
 
   function renderYouPanel(){
@@ -608,7 +674,8 @@
     const el = document.getElementById('pk-log');
     el.innerHTML = S.log.map(l=>'<div>'+l+'</div>').join('');
     el.scrollTop = el.scrollHeight;
-    document.getElementById('pk-handinfo').textContent = 'Mão #'+S.handNumber+' · Mesa solta (poucos folds)';
+    const styleTag = S.stage==='idle' ? '' : (S.tableStyle==='loose' ? '<span class="pk-style-tag loose">Mesa solta</span>' : '<span class="pk-style-tag tight">Mesa séria</span>');
+    document.getElementById('pk-handinfo').innerHTML = 'Mão #'+S.handNumber+styleTag;
   }
 
   function renderStats(){
