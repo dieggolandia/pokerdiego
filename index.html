@@ -537,7 +537,11 @@
     to = Math.min(to, p.bet+p.chips);
     input.value = to;
   };
-  window.pkToggleEquity = function(){ S.showEquity = !S.showEquity; render(); };
+  window.pkToggleEquity = function(){
+    S.showEquity = !S.showEquity;
+    document.getElementById('pk-equity-toggle').classList.toggle('on', S.showEquity);
+    render();
+  };
   window.pkNewHand = function(){ newHand(); };
   window.pkRestart = function(){ initState(); render(); };
 
