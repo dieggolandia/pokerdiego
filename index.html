@@ -57,10 +57,10 @@
     .pk-table-wrap { aspect-ratio: 3/4; margin: 8px 0 14px; }
   }
   .pk-table { position:absolute; inset: 6%; border-radius: 50%; background: radial-gradient(ellipse at center, var(--felt-light) 0%, var(--felt) 55%, var(--felt-dark) 100%); border: 10px solid var(--rail); box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5); }
-  .pk-pot { position:absolute; top:38%; left:50%; transform:translate(-50%,-50%); text-align:center; background: rgba(0,0,0,0.35); border:1px solid var(--gold-dim); border-radius:10px; padding:8px 16px; }
+  .pk-pot { position:absolute; top:38%; left:50%; transform:translate(-50%,-50%); text-align:center; background: rgba(0,0,0,0.35); border:1px solid var(--gold-dim); border-radius:10px; padding:8px 16px; z-index:6; }
   .pk-pot .amt { font-size:20px; font-weight:700; color: var(--gold); }
   .pk-pot .lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color: var(--muted); }
-  .pk-community { position:absolute; top:56%; left:50%; transform:translate(-50%,-50%); display:flex; gap:6px; }
+  .pk-community { position:absolute; top:56%; left:50%; transform:translate(-50%,-50%); display:flex; gap:6px; z-index:6; }
   .pk-stage-tag { position:absolute; top:20%; left:50%; transform:translate(-50%,-50%); font-size:11px; letter-spacing:2px; text-transform:uppercase; color: var(--gold-dim); }
 
   .pk-seat { position:absolute; transform:translate(-50%,-50%); width:120px; text-align:center; }
@@ -71,7 +71,7 @@
   .pk-seat.folded { opacity: 0.32; }
   .pk-seat.acting .name { color: var(--gold); text-shadow: 0 0 6px rgba(212,175,55,0.6); }
   .pk-seat .bet-chip { font-size:10px; background: rgba(212,175,55,0.15); border:1px solid var(--gold-dim); color: var(--gold); border-radius:8px; padding:1px 7px; display:inline-block; margin-top:2px; }
-  .pk-dealer-btn { position:absolute; width:20px; height:20px; background: var(--cream); color:#000; border-radius:50%; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.5); }
+  .pk-dealer-btn { position:absolute; width:20px; height:20px; background: var(--cream); color:#000; border-radius:50%; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.5); z-index:2; }
 
   .pk-card { width:28px; height:39px; border-radius:4px; background: var(--cream); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:700; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.4); flex-shrink:0; }
   .pk-card.big { width:40px; height:56px; font-size:17px; }
@@ -588,8 +588,8 @@
     }
     if(S.dealerIndex>=0){
       const theta = (Math.PI/2) - S.dealerIndex*(Math.PI/4);
-      const x = 50 + 30*Math.cos(theta);
-      const y = 50 + 28*Math.sin(theta);
+      const x = 50 + 38*Math.cos(theta);
+      const y = 50 + 36*Math.sin(theta);
       html += '<div class="pk-dealer-btn" style="left:'+x+'%; top:'+y+'%;">D</div>';
     }
     if(S.gameOver){
