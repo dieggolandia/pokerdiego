@@ -69,6 +69,8 @@
   .pk-seat .chips { font-size:11px; color: var(--muted); margin-top:1px; }
   .pk-seat .cards { display:flex; gap:3px; justify-content:center; margin:4px 0; }
   .pk-seat.folded { opacity: 0.32; }
+  .pk-seat.eliminated { opacity: 0.2; }
+  .pk-seat.eliminated .pos { color: var(--red); }
   .pk-seat.acting .name { color: var(--gold); text-shadow: 0 0 6px rgba(212,175,55,0.6); }
   .pk-seat .bet-chip { font-size:10px; background: rgba(212,175,55,0.15); border:1px solid var(--gold-dim); color: var(--gold); border-radius:8px; padding:1px 7px; display:inline-block; margin-top:2px; }
   .pk-dealer-btn { position:absolute; width:20px; height:20px; background: var(--cream); color:#000; border-radius:50%; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.5); }
@@ -316,7 +318,7 @@
     const arr = [{name:'Você', isHuman:true}];
     const shuffledNames = BOT_NAMES.slice();
     for(let i=1;i<NSEATS;i++) arr.push({name: shuffledNames[i-1], isHuman:false});
-    return arr.map(p=>({...p, chips:50, hole:[], folded:false, eliminated:false, allIn:false, bet:0}));
+    return arr.map(p=>({...p, chips:50, hole:[], folded:false, eliminated:false, allIn:false, bet:0, buyIns:1}));
   }
 
   function initState(){
@@ -347,30 +349,54 @@
     const names = ['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
     return names[dist];
   }
+  function nextActiveSeat(from){
+    const act = S.players.map((_,i)=>i).filter(i=>!S.players[i].eliminated);
+    if(act.length===0) return from;
+    for(let k=1;k<=NSEATS;k++){ const seat=((from+k)%NSEATS+NSEATS)%NSEATS; if(act.includes(seat)) return seat; }
+    return from;
+  }
 
   function newHand(){
-    if(S.players[0].chips<=0){ S.gameOver=true; render(); return; }
-    S.players.forEach((p,i)=>{
-      if(i!==0 && p.chips<=0){ p.chips=50; log(p.name+' comprou mais fichas (rebuy).'); }
-      p.hole=[]; p.folded=false; p.allIn=false; p.bet=0; p.eliminated = i!==0 && false;
+    if(S.gameOver) return;
+    // Busts: usa novo buy-in (até 3 no total) ou elimina o jogador da mesa
+    S.players.forEach((p)=>{
+      if(p.eliminated) return;
+      if(p.chips<=0){
+        if(p.buyIns<3){
+          p.buyIns++;
+          p.chips=50;
+          log(p.name+' comprou mais fichas (rebuy '+p.buyIns+'/3).');
+        } else {
+          p.eliminated=true;
+          log(p.name+' esgotou os 3 buy-ins e saiu da mesa.');
+        }
+      }
+    });
+    if(S.players[0].eliminated){ S.gameOver=true; render(); return; }
+    if(S.players.filter(p=>!p.eliminated).length<2){ S.gameOver=true; log('Não há jogadores suficientes para continuar.'); render(); return; }
+    S.players.forEach((p)=>{
+      if(p.eliminated) return;
+      p.hole=[]; p.folded=false; p.allIn=false; p.bet=0;
     });
     S.community=[];
     S.pot=0;
     S.deck = shuffle(makeDeck());
     S.handNumber++;
-    S.dealerIndex = (S.dealerIndex+1) % NSEATS;
+    S.dealerIndex = nextActiveSeat(S.dealerIndex);
     S.stage='preflop';
     S.raisesThisStreet=0;
     S.lastResult=null;
     S.tableStyle = Math.random()<0.5 ? 'loose' : 'tight';
 
-    for(let r=0;r<2;r++) for(let i=0;i<NSEATS;i++) S.players[i].hole.push(S.deck.pop());
+    const active = activeIdx();
+    for(let r=0;r<2;r++) for(const i of active) S.players[i].hole.push(S.deck.pop());
 
-    const sb = (S.dealerIndex+1)%NSEATS, bb=(S.dealerIndex+2)%NSEATS;
+    const orderFromDealer = rotateFrom(S.dealerIndex, active); // [SB, BB, UTG, ..., BTN]
+    const sb = orderFromDealer[0], bb = orderFromDealer.length>1 ? orderFromDealer[1] : orderFromDealer[0];
     postBlind(sb,0.5); postBlind(bb,1);
     S.currentBet = 1;
 
-    const order = rotateFrom((S.dealerIndex+2)%NSEATS, activeIdx()); // starts at UTG
+    const order = rotateFrom(bb, active); // starts at UTG, termina em SB, BB
     S.queue = order;
     S.log = [];
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
@@ -380,6 +406,7 @@
   }
   function postBlind(i, amt){
     const p = S.players[i];
+    if(p.eliminated) return;
     const pay = Math.min(amt, p.chips);
     p.chips=round2(p.chips-pay); p.bet=round2(p.bet+pay); S.pot=round2(S.pot+pay);
     if(p.chips===0) p.allIn=true;
@@ -573,30 +600,32 @@
       const p = S.players[i];
       const isActing = S.queue[0]===i && (S.stage!=='idle' && S.stage!=='showdown');
       const isWinner = S.stage==='showdown' && S.lastResult && S.lastResult.winners.includes(i);
-      html += '<div class="pk-seat'+(p.folded?' folded':'')+(isActing?' acting':'')+(isWinner?' winner':'')+'" style="left:'+x+'%; top:'+y+'%;">';
+      const isElim = p.eliminated;
+      html += '<div class="pk-seat'+(p.folded?' folded':'')+(isElim?' eliminated':'')+(isActing?' acting':'')+(isWinner?' winner':'')+'" style="left:'+x+'%; top:'+y+'%;">';
       if(isWinner) html += '<span class="crown">👑</span>';
       html += '<div class="name">'+p.name+(p.isHuman?' (você)':'')+'</div>';
-      html += '<div class="pos">'+(S.dealerIndex>=0?positionName(i):'')+'</div>';
+      html += '<div class="pos">'+(isElim ? 'Fora da mesa' : (S.dealerIndex>=0?positionName(i):''))+'</div>';
       html += '<div class="cards">';
-      if(p.hole.length===2){
+      if(!isElim && p.hole.length===2){
         if(p.isHuman) html += cardHTML(p.hole[0])+cardHTML(p.hole[1]);
         else if(S.stage==='showdown' && !p.folded) html += cardHTML(p.hole[0])+cardHTML(p.hole[1]);
         else if(p.folded) html += backHTML()+backHTML();
         else html += backHTML()+backHTML();
       }
       html += '</div>';
-      html += '<div class="chips mono">R$'+fmtMoney(p.chips)+'</div>';
-      if(p.bet>0) html += '<div class="bet-chip mono">R$'+fmtMoney(p.bet)+'</div>';
+      html += '<div class="chips mono">'+(isElim?'—':'R$'+fmtMoney(p.chips))+'</div>';
+      if(!isElim && p.bet>0) html += '<div class="bet-chip mono">R$'+fmtMoney(p.bet)+'</div>';
       html += '</div>';
     }
     if(S.dealerIndex>=0){
       const theta = (Math.PI/2) - S.dealerIndex*(Math.PI/4);
-      const x = 50 + 30*Math.cos(theta);
-      const y = 50 + 28*Math.sin(theta);
+      const x = 50 + 38*Math.cos(theta);
+      const y = 50 + 37*Math.sin(theta);
       html += '<div class="pk-dealer-btn" style="left:'+x+'%; top:'+y+'%;">D</div>';
     }
     if(S.gameOver){
-      html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">Você ficou sem fichas. Isso acontece — revise a sessão no histórico e recomece quando quiser.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
+      const reason = S.players[0].eliminated ? 'Você usou seus 3 buy-ins (R$50 cada) e ficou sem fichas.' : 'Não há jogadores suficientes para continuar a mesa.';
+      html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">'+reason+' Isso acontece — revise a sessão no histórico e recomece quando quiser.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
     }
     table.innerHTML = html;
   }
@@ -688,13 +717,14 @@
   function renderStats(){
     const el = document.getElementById('pk-stats');
     const p = S.players[0];
-    const net = round2(p.chips - 50);
+    const net = round2(p.chips - 50*p.buyIns);
     const wr = S.stats.handsPlayed ? ((S.stats.handsWon/S.stats.handsPlayed)*100).toFixed(0) : '0';
     el.innerHTML =
       '<div class="pk-stat"><div class="v mono">'+S.stats.handsPlayed+'</div><div class="l">Mãos jogadas</div></div>'+
       '<div class="pk-stat"><div class="v mono">'+wr+'%</div><div class="l">Taxa de vitória</div></div>'+
       '<div class="pk-stat"><div class="v mono" style="color:'+(net>=0?'#4caf7d':'var(--red)')+'">'+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+'</div><div class="l">Saldo da sessão</div></div>'+
-      '<div class="pk-stat"><div class="v mono">R$'+fmtMoney(p.chips)+'</div><div class="l">Fichas atuais</div></div>';
+      '<div class="pk-stat"><div class="v mono">R$'+fmtMoney(p.chips)+'</div><div class="l">Fichas atuais</div></div>'+
+      '<div class="pk-stat"><div class="v mono">'+p.buyIns+'/3</div><div class="l">Buy-ins usados</div></div>';
   }
 
   render();
