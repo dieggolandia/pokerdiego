@@ -184,6 +184,7 @@
   .pk-style-tag { font-size:10px; padding:2px 8px; border-radius:999px; border:1px solid; letter-spacing:0.5px; text-transform:uppercase; margin-left:6px; }
   .pk-style-tag.loose { color:#e8a94a; border-color:#e8a94a; }
   .pk-style-tag.tight { color:#7fb7e8; border-color:#7fb7e8; }
+  .pk-style-tag.sticky { color:#c88fe8; border-color:#c88fe8; }
 </style>
 
 <div id="pk-root">
@@ -386,7 +387,8 @@
     S.stage='preflop';
     S.raisesThisStreet=0;
     S.lastResult=null;
-    S.tableStyle = Math.random()<0.5 ? 'loose' : 'tight';
+    const styleRoll = Math.random();
+    S.tableStyle = styleRoll<0.34 ? 'loose' : (styleRoll<0.67 ? 'sticky' : 'tight');
 
     const active = activeIdx();
     for(let r=0;r<2;r++) for(const i of active) S.players[i].hole.push(S.deck.pop());
@@ -400,7 +402,9 @@
     S.queue = order;
     S.log = [];
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
-    log(S.tableStyle==='loose' ? '🎲 Essa rodada a mesa está solta — galera paga mais fácil.' : '🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
+    if(S.tableStyle==='loose') log('🎲 Essa rodada a mesa está solta — galera paga mais fácil e blefa mais.');
+    else if(S.tableStyle==='sticky') log('🧠 Essa rodada a mesa está grudenta — quase ninguém folda, mas as apostas deles refletem mão de verdade.');
+    else log('🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
     render();
     processQueue();
   }
@@ -464,24 +468,56 @@
     const toCall = S.currentBet - p.bet;
     const potOdds = toCall>0 ? toCall/(S.pot+toCall) : 0;
     const isLoose = S.tableStyle==='loose';
-    // Mesa solta: chama fácil, raramente desiste. Mesa séria: mais disciplinada, foldam mais e blefam menos.
-    const looseness = isLoose ? 0.20 : 0.02;
-    const foldEqFloor = isLoose ? 0.10 : 0.24;
-    const foldEqChance = isLoose ? 0.4 : 0.7;
-    const potOddsFoldChance = isLoose ? 0.5 : 0.85;
-    const raiseThresholdHigh = isLoose ? 0.60 : 0.68;
-    const raiseThresholdVeryHigh = isLoose ? 0.78 : 0.86;
-    const raiseChanceHigh = isLoose ? 0.35 : 0.28;
-    const raiseChanceVeryHigh = isLoose ? 0.55 : 0.45;
-    const reraiseThreshold = isLoose ? 0.72 : 0.80;
-    const reraiseChance = isLoose ? 0.32 : 0.22;
+    const isSticky = S.tableStyle==='sticky';
+    // Mesa solta: chama fácil e blefa bastante, pouca correlação entre aposta e força real.
+    // Mesa grudenta: quase nunca folda (ainda mais "sticky" que a solta), mas quase não blefa —
+    //   quando aumentam é porque a mão é de verdade. Fold equity é praticamente zero.
+    // Mesa séria: mais disciplinada, folda mais e blefa menos.
+    let looseness, foldEqFloor, foldEqChance, potOddsFoldChance;
+    let raiseThresholdHigh, raiseThresholdVeryHigh, raiseChanceHigh, raiseChanceVeryHigh;
+    let reraiseThreshold, reraiseChance;
+    if(isSticky){
+      looseness = 0.26;
+      foldEqFloor = 0.06;
+      foldEqChance = 0.22;
+      potOddsFoldChance = 0.30;
+      raiseThresholdHigh = 0.66;
+      raiseThresholdVeryHigh = 0.83;
+      raiseChanceHigh = 0.20;
+      raiseChanceVeryHigh = 0.62;
+      reraiseThreshold = 0.80;
+      reraiseChance = 0.24;
+    } else if(isLoose){
+      looseness = 0.20;
+      foldEqFloor = 0.10;
+      foldEqChance = 0.4;
+      potOddsFoldChance = 0.5;
+      raiseThresholdHigh = 0.60;
+      raiseThresholdVeryHigh = 0.78;
+      raiseChanceHigh = 0.35;
+      raiseChanceVeryHigh = 0.55;
+      reraiseThreshold = 0.72;
+      reraiseChance = 0.32;
+    } else {
+      looseness = 0.02;
+      foldEqFloor = 0.24;
+      foldEqChance = 0.7;
+      potOddsFoldChance = 0.85;
+      raiseThresholdHigh = 0.68;
+      raiseThresholdVeryHigh = 0.86;
+      raiseChanceHigh = 0.28;
+      raiseChanceVeryHigh = 0.45;
+      reraiseThreshold = 0.80;
+      reraiseChance = 0.22;
+    }
     if(toCall<=0){
       if(eq>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
       if(eq>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
       return {action:'check', amount:0};
     } else {
       const capped = Math.min(toCall, p.chips);
-      if(eq + looseness < potOdds && (isLoose ? S.raisesThisStreet>=2 : true) && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
+      const raiseGate = isSticky ? S.raisesThisStreet>=3 : (isLoose ? S.raisesThisStreet>=2 : true);
+      if(eq + looseness < potOdds && raiseGate && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
       if(eq<foldEqFloor && Math.random()<foldEqChance) return {action:'fold', amount:0};
       if(eq>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
       return {action:'call', amount:0};
@@ -710,7 +746,7 @@
     const el = document.getElementById('pk-log');
     el.innerHTML = S.log.map(l=>'<div>'+l+'</div>').join('');
     el.scrollTop = el.scrollHeight;
-    const styleTag = S.stage==='idle' ? '' : (S.tableStyle==='loose' ? '<span class="pk-style-tag loose">Mesa solta</span>' : '<span class="pk-style-tag tight">Mesa séria</span>');
+    const styleTag = S.stage==='idle' ? '' : (S.tableStyle==='loose' ? '<span class="pk-style-tag loose">Mesa solta</span>' : (S.tableStyle==='sticky' ? '<span class="pk-style-tag sticky">Mesa grudenta</span>' : '<span class="pk-style-tag tight">Mesa séria</span>'));
     document.getElementById('pk-handinfo').innerHTML = 'Mão #'+S.handNumber+styleTag;
   }
 
