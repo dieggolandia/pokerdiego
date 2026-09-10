@@ -185,6 +185,26 @@
   .pk-style-tag.loose { color:#e8a94a; border-color:#e8a94a; }
   .pk-style-tag.tight { color:#7fb7e8; border-color:#7fb7e8; }
   .pk-style-tag.sticky { color:#c88fe8; border-color:#c88fe8; }
+
+  .pk-outs-box { margin-top:8px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; overflow:hidden; }
+  .pk-outs-toggle { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; cursor:pointer; font-size:12px; color: var(--gold-dim); text-transform:uppercase; letter-spacing:0.5px; user-select:none; }
+  .pk-outs-toggle:hover { color: var(--gold); }
+  .pk-outs-toggle .chev { font-size:12px; transition: transform .2s; }
+  .pk-outs-toggle.open .chev { transform: rotate(180deg); }
+  .pk-outs-body { padding: 0 12px 12px; font-size:12px; color: var(--muted); }
+  .pk-outs-count { color: var(--gold); font-weight:800; font-family:'SFMono-Regular',monospace; }
+  .pk-outs-cards { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  @media (max-width: 640px){
+    .pk-outs-toggle { padding:12px 14px; font-size:13px; }
+    .pk-outs-body { font-size:13px; padding:0 14px 14px; }
+  }
+
+  .pk-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px; }
+  .pk-modal { background: var(--panel); border:1px solid var(--gold-dim); border-radius:14px; padding:18px; max-width:600px; width:100%; max-height:80vh; display:flex; flex-direction:column; gap:10px; }
+  .pk-modal h3 { color: var(--gold); font-size:16px; }
+  .pk-modal textarea { flex:1; min-height:260px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; color:var(--cream); font-family:'SFMono-Regular',monospace; font-size:11px; padding:10px; resize:vertical; }
+  .pk-modal .pk-modal-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .pk-modal-note { font-size:11px; color:var(--muted); }
 </style>
 
 <div id="pk-root">
@@ -215,8 +235,11 @@
     <details class="pk-details" id="pk-stats-details">
       <summary>Sua sessão <span class="chev">▾</span></summary>
       <div class="pk-stats" id="pk-stats"></div>
+      <div style="padding-bottom:12px;"><button class="pk-btn ghost" style="width:100%;" onclick="pkExportSession()">📋 Exportar histórico da sessão</button></div>
     </details>
   </div>
+
+  <div id="pk-export-modal"></div>
 </div>
 
 <script>
@@ -311,6 +334,18 @@
     return (wins+ties*0.5)/iterations*100;
   }
 
+  function calcOuts(myHole, board, remainingDeck){
+    if(board.length<3 || board.length>=5) return {count:0, cards:[]};
+    const currentBest = best7([...myHole, ...board]);
+    const outCards = [];
+    for(const c of remainingDeck){
+      const newBest = best7([...myHole, ...board, c]);
+      if(compareEval(newBest, currentBest) > 0) outCards.push(c);
+    }
+    outCards.sort((a,b)=> b.r-a.r || SUITS.indexOf(a.s)-SUITS.indexOf(b.s));
+    return {count: outCards.length, cards: outCards};
+  }
+
   // ---- game state ----
   const NSEATS = 8;
   let S = null;
@@ -334,11 +369,14 @@
       gameOver:false,
       tableStyle: 'loose',
       lastResult: null,
+      showOuts: false,
+      fullSessionLog: [],
+      sessionStartTime: new Date(),
     };
   }
   initState();
 
-  function log(msg){ S.log.push(msg); if(S.log.length>60) S.log.shift(); }
+  function log(msg){ S.log.push(msg); if(S.log.length>60) S.log.shift(); S.fullSessionLog.push(msg); }
   function activeIdx(){ return S.players.map((_,i)=>i).filter(i=>!S.players[i].folded && !S.players[i].eliminated); }
   function rotateFrom(idx, list){
     const out=[];
@@ -390,6 +428,7 @@
     const styleRoll = Math.random();
     S.tableStyle = styleRoll<0.34 ? 'loose' : (styleRoll<0.67 ? 'sticky' : 'tight');
 
+    S.showOuts = false;
     const active = activeIdx();
     for(let r=0;r<2;r++) for(const i of active) S.players[i].hole.push(S.deck.pop());
 
@@ -402,6 +441,9 @@
     S.queue = order;
     S.log = [];
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
+    if(!S.players[0].eliminated && S.players[0].hole.length===2){
+      log('Suas cartas: '+S.players[0].hole.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')+' | Sua posição: '+positionName(0));
+    }
     if(S.tableStyle==='loose') log('🎲 Essa rodada a mesa está solta — galera paga mais fácil e blefa mais.');
     else if(S.tableStyle==='sticky') log('🧠 Essa rodada a mesa está grudenta — quase ninguém folda, mas as apostas deles refletem mão de verdade.');
     else log('🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
@@ -610,6 +652,59 @@
   };
   window.pkNewHand = function(){ newHand(); };
   window.pkRestart = function(){ initState(); render(); };
+  window.pkToggleOuts = function(){ S.showOuts = !S.showOuts; renderYouPanel(); };
+
+  window.pkExportSession = function(){
+    const p = S.players[0];
+    const net = round2(p.chips - 50*p.buyIns);
+    const wr = S.stats.handsPlayed ? ((S.stats.handsWon/S.stats.handsPlayed)*100).toFixed(1) : '0';
+    let text = '';
+    text += '===== HISTÓRICO DA SESSÃO — MESA DE TREINO DE POKER =====\n';
+    text += 'Data/hora de início: '+S.sessionStartTime.toLocaleString('pt-BR')+'\n';
+    text += 'Mãos jogadas: '+S.stats.handsPlayed+' | Taxa de vitória: '+wr+'%\n';
+    text += 'Saldo da sessão: '+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+' | Fichas atuais: R$'+fmtMoney(p.chips)+' | Buy-ins: '+p.buyIns+'/3\n';
+    text += '===========================================================\n\n';
+    text += S.fullSessionLog.length ? S.fullSessionLog.join('\n') : '(nenhuma mão jogada ainda)';
+    showExportModal(text);
+  };
+
+  function showExportModal(text){
+    const el = document.getElementById('pk-export-modal');
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML =
+      '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
+        '<div class="pk-modal">' +
+          '<h3>Histórico da sessão</h3>' +
+          '<div class="pk-modal-note">Copie o texto abaixo e cole na conversa com o Claude para revisar sua sessão.</div>' +
+          '<textarea id="pk-export-textarea" readonly onclick="this.select()">'+escaped+'</textarea>' +
+          '<div class="pk-modal-actions">' +
+            '<button class="pk-btn ghost" onclick="pkCloseExportModal()">Fechar</button>' +
+            '<button class="pk-btn raise" onclick="pkCopyExport()">Copiar texto</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    const ta = document.getElementById('pk-export-textarea');
+    ta.focus(); ta.select();
+  }
+  window.pkCloseExportModal = function(){ document.getElementById('pk-export-modal').innerHTML = ''; };
+  window.pkCopyExport = function(){
+    const ta = document.getElementById('pk-export-textarea');
+    ta.focus(); ta.select();
+    let copied = false;
+    try {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value);
+        copied = true;
+      }
+    } catch(e){}
+    if(!copied){
+      try { copied = document.execCommand('copy'); } catch(e){ copied = false; }
+    }
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = copied ? 'Copiado! ✓' : 'Selecione e copie (Ctrl+C)';
+    setTimeout(()=>{ btn.textContent = original; }, 2000);
+  };
 
   // ---- render ----
   function render(){
@@ -714,6 +809,25 @@
         }
         html += '</div>';
       }
+    }
+
+    if((S.stage==='flop' || S.stage==='turn') && p.hole.length===2){
+      const outsInfo = calcOuts(p.hole, S.community, S.deck);
+      html += '<div class="pk-outs-box">';
+      html += '<div class="pk-outs-toggle'+(S.showOuts?' open':'')+'" onclick="pkToggleOuts()"><span>🃏 Ver outs (clique para '+(S.showOuts?'esconder':'revelar')+')</span><span class="chev">▾</span></div>';
+      if(S.showOuts){
+        const pct = S.deck.length ? (outsInfo.count/S.deck.length*100) : 0;
+        html += '<div class="pk-outs-body">';
+        html += 'Você tem <span class="pk-outs-count">'+outsInfo.count+'</span> outs para melhorar a mão ';
+        html += '(~<b class="mono">'+pct.toFixed(1)+'%</b> na próxima carta).';
+        if(outsInfo.count>0){
+          html += '<div class="pk-outs-cards">';
+          outsInfo.cards.forEach(c=> html += cardHTML(c));
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
     }
     html += '</div>';
 
