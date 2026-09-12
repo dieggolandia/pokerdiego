@@ -331,6 +331,38 @@
     return (wins+ties*0.5)/iterations*100;
   }
 
+  // Força bruta da mão pré-flop (0 a 1), independente de quantos oponentes estão na mão.
+  // Isso é o que um jogador real usa pra decidir abrir/3-bet pré-flop — AA é sempre AA,
+  // não importa se tem 2 ou 7 jogadores na mesa. A equity multiway (calcEquity) fica
+  // reservada pra decisão de pagar (pot odds), que aí sim depende de quantos vilões tem.
+  function preflopScore(hole){
+    const hi = Math.max(hole[0].r, hole[1].r), lo = Math.min(hole[0].r, hole[1].r);
+    const suited = hole[0].s === hole[1].s;
+    const pair = hole[0].r === hole[1].r;
+    let score;
+    if(pair){
+      score = 0.5 + (hi-2)/12*0.5; // 22 -> 0.5 ... AA -> 1.0
+    } else {
+      const hiScore = (hi-2)/12, loScore = (lo-2)/12;
+      score = 0.15 + hiScore*0.45 + loScore*0.15;
+      if(suited) score += 0.08;
+      const gap = hi-lo-1;
+      if(gap===0) score += 0.05;
+      else if(gap===1) score += 0.02;
+      else if(gap>=4) score -= 0.05;
+    }
+    return Math.max(0, Math.min(1, score));
+  }
+  // Pequeno ajuste por posição: jogadores reais abrem mão mais larga no BTN/CO do que no UTG.
+  function positionBonus(seatIdx){
+    if(S.dealerIndex<0) return 0;
+    const pos = positionName(seatIdx);
+    if(pos==='BTN' || pos==='CO') return 0.05;
+    if(pos==='HJ') return 0.02;
+    if(pos==='UTG' || pos==='UTG+1') return -0.05;
+    return 0;
+  }
+
   function calcOuts(myHole, board, remainingDeck){
     if(board.length<3 || board.length>=5) return {count:0, cards:[]};
     const currentBest = best7([...myHole, ...board]);
@@ -369,6 +401,8 @@
       showOuts: false,
       fullSessionLog: [],
       sessionStartTime: new Date(),
+      streetAggressor: null,
+      lastStreetAggressor: null,
     };
   }
   initState();
@@ -422,6 +456,8 @@
     S.stage='preflop';
     S.raisesThisStreet=0;
     S.lastResult=null;
+    S.streetAggressor=null;
+    S.lastStreetAggressor=null;
     const styleRoll = Math.random();
     S.tableStyle = styleRoll<0.34 ? 'loose' : (styleRoll<0.67 ? 'sticky' : 'tight');
 
@@ -472,6 +508,7 @@
       const isBet = S.currentBet===0;
       if(p.bet>S.currentBet){
         S.currentBet=p.bet; S.raisesThisStreet++;
+        S.streetAggressor = idx;
         const others = activeIdx().filter(i=>i!==idx && !S.players[i].allIn);
         S.queue = rotateFrom(idx, others);
       }
@@ -506,6 +543,13 @@
     eq = eq/100;
     const toCall = S.currentBet - p.bet;
     const potOdds = toCall>0 ? toCall/(S.pot+toCall) : 0;
+    // Pré-flop, quem decide se vale abrir/re-raise é a força da mão em si (raiseMetric),
+    // não a equity diluída pelos 7 oponentes na mesa. Pagar/foldar continua pela equity real (eq).
+    const isPreflop = S.stage==='preflop';
+    let raiseMetric = eq;
+    if(isPreflop){
+      raiseMetric = Math.max(0, Math.min(1, preflopScore(p.hole) + positionBonus(idx)));
+    }
     const isLoose = S.tableStyle==='loose';
     const isSticky = S.tableStyle==='sticky';
     // Mesa solta: chama fácil e blefa bastante, pouca correlação entre aposta e força real.
@@ -515,6 +559,7 @@
     let looseness, foldEqFloor, foldEqChance, potOddsFoldChance;
     let raiseThresholdHigh, raiseThresholdVeryHigh, raiseChanceHigh, raiseChanceVeryHigh;
     let reraiseThreshold, reraiseChance;
+    let cbetChance, cbetFloor;
     if(isSticky){
       looseness = 0.26;
       foldEqFloor = 0.06;
@@ -526,6 +571,8 @@
       raiseChanceVeryHigh = 0.62;
       reraiseThreshold = 0.80;
       reraiseChance = 0.24;
+      cbetChance = 0.70;
+      cbetFloor = 0.30;
     } else if(isLoose){
       looseness = 0.20;
       foldEqFloor = 0.10;
@@ -537,6 +584,8 @@
       raiseChanceVeryHigh = 0.55;
       reraiseThreshold = 0.72;
       reraiseChance = 0.32;
+      cbetChance = 0.68;
+      cbetFloor = 0.28;
     } else {
       looseness = 0.02;
       foldEqFloor = 0.24;
@@ -548,22 +597,34 @@
       raiseChanceVeryHigh = 0.45;
       reraiseThreshold = 0.80;
       reraiseChance = 0.22;
+      cbetChance = 0.55;
+      cbetFloor = 0.35;
     }
+    // Pré-flop com pote ainda sem raise nenhum: no BB isso normalmente é toCall<=0 (opção de check),
+    // mas bots que ainda não agiram e têm mão forte também usam essa mesma abertura (raise "de entrada").
     if(toCall<=0){
-      if(eq>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
-      if(eq>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
+      if(raiseMetric>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
+      if(raiseMetric>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
+      // Continuation bet: pós-flop, quem foi o agressor na rua anterior tende a apostar de novo
+      // com mão mediana/decente (não precisa ser trinca/set) — desde que ainda tenha alguma equity real.
+      if(!isPreflop && idx===S.lastStreetAggressor && eq>cbetFloor && Math.random()<cbetChance){
+        return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
+      }
       return {action:'check', amount:0};
     } else {
       const capped = Math.min(toCall, p.chips);
       const raiseGate = isSticky ? S.raisesThisStreet>=3 : (isLoose ? S.raisesThisStreet>=2 : true);
+      // Fold por pot odds sempre usa a equity real multiway (eq), não a força bruta pré-flop.
       if(eq + looseness < potOdds && raiseGate && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
       if(eq<foldEqFloor && Math.random()<foldEqChance) return {action:'fold', amount:0};
-      if(eq>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
+      if(raiseMetric>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
       return {action:'call', amount:0};
     }
   }
 
   function advanceStreet(){
+    S.lastStreetAggressor = S.streetAggressor;
+    S.streetAggressor = null;
     S.players.forEach(p=>{ p.bet=0; p.acted=false; });
     S.currentBet=0; S.raisesThisStreet=0;
     if(S.stage==='preflop'){ S.deck.pop(); S.community.push(S.deck.pop(),S.deck.pop(),S.deck.pop()); S.stage='flop'; log('— Flop: '+S.community.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')); }
