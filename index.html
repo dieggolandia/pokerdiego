@@ -32,3 +32,980 @@
   @media (max-width: 640px){
     #pk-root { padding: 10px; border-radius: 10px; font-size: 17px; }
   }
+  #pk-root h1, #pk-root h2, #pk-root h3 { font-family: Georgia, 'Times New Roman', serif; margin: 0; }
+  #pk-root .mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
+
+  .pk-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .pk-title { font-size: 22px; font-weight:700; letter-spacing: 0.5px; color: var(--gold); }
+  .pk-sub { font-size:12px; color: var(--muted); letter-spacing:0.5px; text-transform:uppercase; margin-top:2px;}
+
+  .pk-toggle-wrap { display:flex; align-items:center; gap:8px; background: var(--panel); border:1px solid var(--gold-dim); padding:8px 12px; border-radius:999px; }
+  .pk-toggle { position:relative; width:44px; height:26px; background:#3a4a3f; border-radius:999px; cursor:pointer; transition:.2s; flex-shrink:0; }
+  .pk-toggle.on { background: var(--gold); }
+  .pk-toggle::after { content:''; position:absolute; top:2px; left:2px; width:22px; height:22px; background:#fff; border-radius:50%; transition:.2s; }
+  .pk-toggle.on::after { left:20px; }
+  .pk-toggle-label { font-size:13px; }
+  @media (max-width: 640px){
+    .pk-title { font-size: 20px; }
+    .pk-sub { font-size:11px; }
+    .pk-toggle-wrap { padding:10px 14px; width:100%; justify-content:space-between; }
+    .pk-toggle-label { font-size:14px; }
+  }
+
+  .pk-table-wrap { position:relative; width:100%; aspect-ratio: 16/9; margin: 10px 0 18px; }
+  @media (max-width: 640px){
+    .pk-table-wrap { aspect-ratio: 3/4; margin: 8px 0 14px; }
+  }
+  .pk-table { position:absolute; inset: 6%; border-radius: 50%; background: radial-gradient(ellipse at center, var(--felt-light) 0%, var(--felt) 55%, var(--felt-dark) 100%); border: 10px solid var(--rail); box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5); }
+  .pk-pot { position:absolute; top:38%; left:50%; transform:translate(-50%,-50%); text-align:center; background: rgba(0,0,0,0.35); border:1px solid var(--gold-dim); border-radius:10px; padding:8px 16px; }
+  .pk-pot .amt { font-size:20px; font-weight:700; color: var(--gold); }
+  .pk-pot .lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color: var(--muted); }
+  .pk-community { position:absolute; top:56%; left:50%; transform:translate(-50%,-50%); display:flex; gap:6px; }
+  .pk-stage-tag { position:absolute; top:20%; left:50%; transform:translate(-50%,-50%); font-size:11px; letter-spacing:2px; text-transform:uppercase; color: var(--gold-dim); }
+
+  .pk-seat { position:absolute; transform:translate(-50%,-50%); width:120px; text-align:center; }
+  .pk-seat .name { font-size:12px; font-weight:600; }
+  .pk-seat .pos { font-size:9px; color: var(--gold-dim); letter-spacing:1px; }
+  .pk-seat .chips { font-size:11px; color: var(--muted); margin-top:1px; }
+  .pk-seat .cards { display:flex; gap:3px; justify-content:center; margin:4px 0; }
+  .pk-seat.folded { opacity: 0.32; }
+  .pk-seat.eliminated { opacity: 0.2; }
+  .pk-seat.eliminated .pos { color: var(--red); }
+  .pk-seat.acting .name { color: var(--gold); text-shadow: 0 0 6px rgba(212,175,55,0.6); }
+  .pk-seat .bet-chip { font-size:10px; background: rgba(212,175,55,0.15); border:1px solid var(--gold-dim); color: var(--gold); border-radius:8px; padding:1px 7px; display:inline-block; margin-top:2px; }
+  .pk-dealer-btn { position:absolute; width:20px; height:20px; background: var(--cream); color:#000; border-radius:50%; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.5); }
+
+  .pk-card { width:28px; height:39px; border-radius:4px; background: var(--cream); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:700; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.4); flex-shrink:0; }
+  .pk-card.big { width:40px; height:56px; font-size:17px; }
+  .pk-card.back { background: repeating-linear-gradient(45deg, var(--felt-dark), var(--felt-dark) 4px, #1c6b45 4px, #1c6b45 8px); border: 2px solid var(--gold-dim); }
+  .pk-card .r { color: var(--red); } .pk-card .b { color: #161512; }
+
+  @media (max-width: 640px){
+    .pk-seat { width:104px; }
+    .pk-seat .name { font-size:13px; }
+    .pk-seat .pos { font-size:10px; }
+    .pk-seat .chips { font-size:12px; }
+    .pk-seat .bet-chip { font-size:11px; padding:2px 8px; }
+    .pk-dealer-btn { width:24px; height:24px; font-size:12px; }
+    .pk-card { width:32px; height:45px; font-size:15px; border-radius:5px; }
+    .pk-card.big { width:48px; height:67px; font-size:20px; }
+    .pk-pot .amt { font-size:24px; }
+    .pk-pot { padding:10px 20px; }
+  }
+
+  .pk-panel { background: var(--panel); border: 1px solid #2a4436; border-radius: 12px; padding: 14px 16px; margin-top:12px; }
+  .pk-you-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:space-between; }
+  .pk-you-cards { display:flex; gap:6px; align-items:center; }
+  @media (max-width: 640px){
+    .pk-panel { padding: 14px; border-radius: 14px; }
+    .pk-you-row { gap:12px; }
+  }
+
+  .pk-equity-badge { background:#0a1a12; border:1px solid var(--gold); border-radius:8px; padding:8px 14px; min-width:150px; }
+  .pk-equity-badge .pct { font-size:24px; font-weight:800; color: var(--gold); }
+  .pk-equity-badge .sub { font-size:10px; color: var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+  .pk-equity-bar { height:6px; background:#2a3a30; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .pk-equity-fill { height:100%; border-radius:4px; transition: width .3s; }
+  .pk-oddshint { font-size:11px; color: var(--muted); margin-top:6px; }
+  @media (max-width: 640px){
+    .pk-equity-badge { min-width: 100%; padding: 12px 16px; }
+    .pk-equity-badge .pct { font-size:30px; }
+    .pk-equity-badge .sub { font-size:11px; }
+    .pk-oddshint { font-size:12px; }
+  }
+
+  .pk-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; align-items:center; }
+  .pk-btn { border:none; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:0.3px; transition:.15s; }
+  .pk-btn:disabled { opacity:0.35; cursor:not-allowed; }
+  .pk-btn.fold { background:#5a2a26; color:#f2d9d6; }
+  .pk-btn.fold:hover:not(:disabled) { background:#733531; }
+  .pk-btn.call { background:#2a5540; color:#e8f5ec; }
+  .pk-btn.call:hover:not(:disabled) { background:#356b50; }
+  .pk-btn.raise { background: var(--gold); color:#1a1712; }
+  .pk-btn.raise:hover:not(:disabled) { background:#e6c458; }
+  .pk-btn.ghost { background:transparent; border:1px solid var(--gold-dim); color: var(--gold); }
+  .pk-btn.ghost:hover { background:rgba(212,175,55,0.1); }
+  .pk-btn.next { background: var(--gold); color:#1a1712; padding:12px 26px; font-size:14px; }
+
+  .pk-raisebox { display:flex; align-items:center; gap:6px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; padding:6px 10px; }
+  .pk-raisebox input { width:80px; background:transparent; border:none; color:var(--cream); font-family: 'SFMono-Regular', monospace; font-size:14px; outline:none; }
+  .pk-preset { font-size:11px; background:#1c3327; color:var(--muted); border:1px solid #2a4436; border-radius:6px; padding:4px 8px; cursor:pointer; }
+  .pk-preset:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+  @media (max-width: 640px){
+    .pk-actions { gap:10px; }
+    .pk-btn { padding:14px 16px; font-size:15px; border-radius:10px; flex: 1 1 auto; min-width: 90px; }
+    .pk-btn.next { width:100%; padding:16px; font-size:16px; }
+    .pk-raisebox { width:100%; flex-wrap:wrap; padding:10px 12px; gap:8px; }
+    .pk-raisebox input { width:100%; font-size:18px; order:1; padding:6px 0; border-bottom:1px solid #2a4436; }
+    .pk-preset { font-size:13px; padding:8px 12px; flex:1 1 auto; text-align:center; order:2; }
+    .pk-btn.raise { width:100%; order:3; padding:14px; font-size:15px; }
+  }
+
+  .pk-bottom { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+  @media (max-width: 560px) { .pk-bottom { grid-template-columns: 1fr; } }
+  .pk-details { background: var(--panel); border: 1px solid #2a4436; border-radius: 12px; padding: 4px 14px; }
+  .pk-details summary { cursor:pointer; list-style:none; font-size:13px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1px; padding:10px 0; display:flex; justify-content:space-between; align-items:center; }
+  .pk-details summary::-webkit-details-marker { display:none; }
+  .pk-details .chev { transition: transform .2s; font-size:14px; }
+  .pk-details[open] .chev { transform: rotate(180deg); }
+  .pk-details[open] summary { border-bottom: 1px solid #2a4436; margin-bottom:8px; }
+  .pk-log { max-height:150px; overflow-y:auto; font-size:12px; color: var(--muted); line-height:1.6; padding-bottom:10px; }
+  .pk-log div { border-bottom: 1px solid rgba(255,255,255,0.05); padding:3px 0; }
+  .pk-stats { display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding-bottom:10px; }
+  .pk-stat { background:#0a1a12; border-radius:8px; padding:8px 10px; }
+  .pk-stat .v { font-size:18px; font-weight:800; color: var(--gold); font-family:'SFMono-Regular',monospace; }
+  .pk-stat .l { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); }
+
+  @media (max-width: 640px){
+    .pk-bottom { gap:10px; margin-top:10px; }
+    .pk-details summary { font-size:14px; padding:12px 0; }
+    .pk-log { font-size:13px; max-height:160px; }
+    .pk-stat { padding:12px; }
+    .pk-stat .v { font-size:20px; }
+    .pk-stat .l { font-size:11px; }
+  }
+
+  .pk-overlay { position:absolute; inset:0; background:rgba(6,12,9,0.88); border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:5; gap:12px; padding:20px;}
+
+  .pk-winbanner { border-radius:12px; padding:12px 16px; margin:10px 0; display:flex; align-items:center; gap:12px; border:1px solid var(--gold); background: linear-gradient(90deg, rgba(212,175,55,0.16), rgba(212,175,55,0.04)); animation: pkPop .35s ease; }
+  .pk-winbanner.you { border-color:#4caf7d; background: linear-gradient(90deg, rgba(76,175,125,0.2), rgba(76,175,125,0.05)); }
+  .pk-winbanner .trophy { font-size:26px; flex-shrink:0; }
+  .pk-winbanner .wtitle { font-weight:800; font-size:15px; color: var(--gold); }
+  .pk-winbanner.you .wtitle { color:#69d99b; }
+  .pk-winbanner .wsub { font-size:12px; color: var(--muted); margin-top:2px; }
+  @keyframes pkPop { from{ transform:scale(0.94); opacity:0;} to{ transform:scale(1); opacity:1;} }
+
+  .pk-seat.winner { z-index:3; }
+  .pk-seat.winner .name { color: var(--gold); text-shadow: 0 0 8px rgba(212,175,55,0.8); }
+  .pk-seat.winner .cards .pk-card { box-shadow: 0 0 0 3px var(--gold), 0 2px 8px rgba(212,175,55,0.6); }
+  .pk-seat.winner .crown { font-size:16px; display:block; margin-bottom:2px; }
+
+  .pk-style-tag { font-size:10px; padding:2px 8px; border-radius:999px; border:1px solid; letter-spacing:0.5px; text-transform:uppercase; margin-left:6px; }
+  .pk-style-tag.loose { color:#e8a94a; border-color:#e8a94a; }
+  .pk-style-tag.tight { color:#7fb7e8; border-color:#7fb7e8; }
+  .pk-style-tag.sticky { color:#c88fe8; border-color:#c88fe8; }
+
+  .pk-outs-pill { background:#0a1a12; border:1px solid var(--gold-dim); color:var(--gold-dim); font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:7px 12px; border-radius:999px; cursor:pointer; font-family: inherit; transition:.15s; white-space:nowrap; }
+  .pk-outs-pill:hover { color: var(--gold); border-color: var(--gold); }
+  .pk-outs-pill.active { color: var(--gold); border-color: var(--gold); background: rgba(212,175,55,0.1); }
+  .pk-outs-icon-btn { background:transparent; border:1px solid var(--gold-dim); color: var(--gold); font-size:13px; line-height:1; padding:7px 9px; border-radius:999px; cursor:pointer; margin-left:4px; }
+  .pk-outs-icon-btn:hover { background: rgba(212,175,55,0.12); }
+  @media (max-width: 640px){
+    .pk-outs-pill { font-size:12px; padding:9px 14px; }
+    .pk-outs-icon-btn { font-size:15px; padding:9px 11px; }
+  }
+
+  .pk-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px; }
+  .pk-modal { background: var(--panel); border:1px solid var(--gold-dim); border-radius:14px; padding:18px; max-width:600px; width:100%; max-height:80vh; display:flex; flex-direction:column; gap:10px; }
+  .pk-modal h3 { color: var(--gold); font-size:16px; }
+  .pk-modal textarea { flex:1; min-height:260px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; color:var(--cream); font-family:'SFMono-Regular',monospace; font-size:11px; padding:10px; resize:vertical; }
+  .pk-modal .pk-modal-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .pk-modal-note { font-size:11px; color:var(--muted); }
+</style>
+
+<div id="pk-root">
+  <div class="pk-header">
+    <div>
+      <div class="pk-title">♠ Mesa de Treino — 8 Jogadores</div>
+      <div class="pk-sub" id="pk-handinfo">Mão #0</div>
+    </div>
+    <div class="pk-toggle-wrap">
+      <span class="pk-toggle-label">Mostrar chance de vitória</span>
+      <div class="pk-toggle on" id="pk-equity-toggle" onclick="pkToggleEquity()"></div>
+    </div>
+    <button class="pk-btn ghost" onclick="pkOpenRangeWizard()" style="font-size:12px; white-space:nowrap;">📊 Grade de Mãos</button>
+  </div>
+
+  <div class="pk-table-wrap">
+    <div class="pk-table" id="pk-table"></div>
+  </div>
+
+  <div id="pk-winner-banner"></div>
+
+  <div class="pk-panel" id="pk-you-panel"></div>
+
+  <div class="pk-bottom">
+    <details class="pk-details" id="pk-log-details">
+      <summary>Histórico da mesa <span class="chev">▾</span></summary>
+      <div class="pk-log" id="pk-log"></div>
+    </details>
+    <details class="pk-details" id="pk-stats-details">
+      <summary>Sua sessão <span class="chev">▾</span></summary>
+      <div class="pk-stats" id="pk-stats"></div>
+      <div style="padding-bottom:12px;"><button class="pk-btn ghost" style="width:100%;" onclick="pkExportSession()">📋 Exportar histórico da sessão</button></div>
+    </details>
+  </div>
+
+  <div id="pk-export-modal"></div>
+</div>
+
+<script>
+(function(){
+  const RANKS = [2,3,4,5,6,7,8,9,10,11,12,13,14];
+  const RLABEL = {11:'J',12:'Q',13:'K',14:'A'};
+  const SUITS = ['s','h','d','c'];
+  const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
+  const RCOL = {s:'b',c:'b',h:'r',d:'r'};
+  const HAND_NAMES = ['Carta Alta','Par','Dois Pares','Trinca','Sequência','Flush','Full House','Quadra','Straight Flush'];
+  const BOT_NAMES = ['Marina','Tiago','Bia','Rafa','Duda','Léo','Carol'];
+
+  function round2(x){ return Math.round(x*100)/100; }
+  function roundToHalf(x){ return Math.round(x*2)/2; }
+  function fmtMoney(x){ x = round2(x); const neg = x<0; x = Math.abs(x); const s = x.toFixed(2).replace('.', ','); return (neg?'-':'')+s; }
+  function rlabel(r){ return RLABEL[r] || String(r); }
+  function cardHTML(c, big){ return '<div class="pk-card'+(big?' big':'')+'"><span class="'+RCOL[c.s]+'">'+rlabel(c.r)+SYM[c.s]+'</span></div>'; }
+  function backHTML(big){ return '<div class="pk-card back'+(big?' big':'')+'"></div>'; }
+
+  function makeDeck(){ const d=[]; for(const r of RANKS) for(const s of SUITS) d.push({r,s}); return d; }
+
+  function evaluate5(cards){
+    const ranks = cards.map(c=>c.r).sort((a,b)=>b-a);
+    const suits = cards.map(c=>c.s);
+    const isFlush = suits.every(s=>s===suits[0]);
+    const counts = {};
+    ranks.forEach(r=>counts[r]=(counts[r]||0)+1);
+    const distinct = Object.keys(counts).map(Number).sort((a,b)=>b-a);
+    let isStraight=false, straightHigh=0;
+    if(distinct.length===5){
+      if(distinct[0]-distinct[4]===4){ isStraight=true; straightHigh=distinct[0]; }
+      else if(distinct.join(',')==='14,5,4,3,2'){ isStraight=true; straightHigh=5; }
+    }
+    const groups = Object.entries(counts).map(([r,c])=>({r:Number(r),c})).sort((a,b)=> b.c-a.c || b.r-a.r);
+    let category, tiebreak;
+    if(isStraight && isFlush){ category=8; tiebreak=[straightHigh]; }
+    else if(groups[0].c===4){ category=7; tiebreak=[groups[0].r, groups[1]?groups[1].r:0]; }
+    else if(groups[0].c===3 && groups[1] && groups[1].c>=2){ category=6; tiebreak=[groups[0].r, groups[1].r]; }
+    else if(isFlush){ category=5; tiebreak=ranks; }
+    else if(isStraight){ category=4; tiebreak=[straightHigh]; }
+    else if(groups[0].c===3){ category=3; tiebreak=[groups[0].r, ...groups.slice(1).map(g=>g.r)]; }
+    else if(groups[0].c===2 && groups[1] && groups[1].c===2){ category=2; tiebreak=[groups[0].r, groups[1].r, groups[2]?groups[2].r:0]; }
+    else if(groups[0].c===2){ category=1; tiebreak=[groups[0].r, ...groups.slice(1).map(g=>g.r)]; }
+    else { category=0; tiebreak=ranks; }
+    return {category, tiebreak};
+  }
+  function compareEval(a,b){
+    if(a.category!==b.category) return a.category-b.category;
+    const len = Math.max(a.tiebreak.length,b.tiebreak.length);
+    for(let i=0;i<len;i++){ const x=a.tiebreak[i]||0, y=b.tiebreak[i]||0; if(x!==y) return x-y; }
+    return 0;
+  }
+  function best7(cards){
+    if(cards.length<=5) return evaluate5(cards);
+    let best=null;
+    const n=cards.length;
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+      const hand = cards.filter((_,idx)=>idx!==i&&idx!==j);
+      const ev = evaluate5(hand);
+      if(!best || compareEval(ev,best)>0) best=ev;
+    }
+    return best;
+  }
+
+  function calcEquity(myHole, board, numOpponents, iterations){
+    if(numOpponents<=0) return 100;
+    const knownKeys = new Set([...myHole, ...board].map(c=>c.r+''+c.s));
+    const deck = makeDeck().filter(c=>!knownKeys.has(c.r+''+c.s));
+    const boardNeeded = 5-board.length;
+    const need = numOpponents*2 + boardNeeded;
+    if(need > deck.length) return null;
+    let wins=0, ties=0;
+    for(let iter=0; iter<iterations; iter++){
+      const arr = deck.slice();
+      for(let k=0;k<need;k++){
+        const idx = k + Math.floor(Math.random()*(arr.length-k));
+        const tmp = arr[k]; arr[k]=arr[idx]; arr[idx]=tmp;
+      }
+      const oppHoles=[];
+      for(let o=0;o<numOpponents;o++) oppHoles.push([arr[o*2],arr[o*2+1]]);
+      const extraBoard = arr.slice(numOpponents*2, numOpponents*2+boardNeeded);
+      const fullBoard = [...board, ...extraBoard];
+      const myEval = best7([...myHole,...fullBoard]);
+      let bestOpp=null;
+      for(const oh of oppHoles){
+        const ev = best7([...oh,...fullBoard]);
+        if(!bestOpp || compareEval(ev,bestOpp)>0) bestOpp=ev;
+      }
+      const cmp = compareEval(myEval,bestOpp);
+      if(cmp>0) wins++; else if(cmp===0) ties++;
+    }
+    return (wins+ties*0.5)/iterations*100;
+  }
+
+  function calcOuts(myHole, board, remainingDeck){
+    if(board.length<3 || board.length>=5) return {count:0, cards:[]};
+    const currentBest = best7([...myHole, ...board]);
+    const outCards = [];
+    for(const c of remainingDeck){
+      const newBest = best7([...myHole, ...board, c]);
+      if(compareEval(newBest, currentBest) > 0) outCards.push(c);
+    }
+    outCards.sort((a,b)=> b.r-a.r || SUITS.indexOf(a.s)-SUITS.indexOf(b.s));
+    return {count: outCards.length, cards: outCards};
+  }
+
+  // ---- game state ----
+  const NSEATS = 8;
+  let S = null;
+
+  function freshPlayers(){
+    const arr = [{name:'Você', isHuman:true}];
+    const shuffledNames = BOT_NAMES.slice();
+    for(let i=1;i<NSEATS;i++) arr.push({name: shuffledNames[i-1], isHuman:false});
+    return arr.map(p=>({...p, chips:50, hole:[], folded:false, eliminated:false, allIn:false, bet:0, buyIns:1}));
+  }
+
+  function initState(){
+    S = {
+      players: freshPlayers(),
+      community: [], deck: [], pot:0,
+      dealerIndex: -1, currentBet:0, stage:'idle',
+      queue: [], raisesThisStreet:0,
+      log: [], handNumber:0,
+      showEquity: true, waitingHuman:false,
+      stats: {handsPlayed:0, handsWon:0},
+      gameOver:false,
+      tableStyle: 'loose',
+      lastResult: null,
+      showOuts: false,
+      fullSessionLog: [],
+      sessionStartTime: new Date(),
+    };
+  }
+  initState();
+
+  function log(msg){ S.log.push(msg); if(S.log.length>60) S.log.shift(); S.fullSessionLog.push(msg); }
+  function activeIdx(){ return S.players.map((_,i)=>i).filter(i=>!S.players[i].folded && !S.players[i].eliminated); }
+  function rotateFrom(idx, list){
+    const out=[];
+    for(let k=1;k<=NSEATS;k++){ const seat=(idx+k)%NSEATS; if(list.includes(seat)) out.push(seat); }
+    return out;
+  }
+  function positionName(seatIdx){
+    const dist = (seatIdx - S.dealerIndex + NSEATS) % NSEATS;
+    const names = ['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
+    return names[dist];
+  }
+  function nextActiveSeat(from){
+    const act = S.players.map((_,i)=>i).filter(i=>!S.players[i].eliminated);
+    if(act.length===0) return from;
+    for(let k=1;k<=NSEATS;k++){ const seat=((from+k)%NSEATS+NSEATS)%NSEATS; if(act.includes(seat)) return seat; }
+    return from;
+  }
+
+  function newHand(){
+    if(S.gameOver) return;
+    // Busts: usa novo buy-in (até 3 no total) ou elimina o jogador da mesa
+    S.players.forEach((p)=>{
+      if(p.eliminated) return;
+      if(p.chips<=0){
+        if(p.buyIns<3){
+          p.buyIns++;
+          p.chips=50;
+          log(p.name+' comprou mais fichas (rebuy '+p.buyIns+'/3).');
+        } else {
+          p.eliminated=true;
+          log(p.name+' esgotou os 3 buy-ins e saiu da mesa.');
+        }
+      }
+    });
+    if(S.players[0].eliminated){ S.gameOver=true; render(); return; }
+    if(S.players.filter(p=>!p.eliminated).length<2){ S.gameOver=true; log('Não há jogadores suficientes para continuar.'); render(); return; }
+    S.players.forEach((p)=>{
+      if(p.eliminated) return;
+      p.hole=[]; p.folded=false; p.allIn=false; p.bet=0;
+    });
+    S.community=[];
+    S.pot=0;
+    S.deck = shuffle(makeDeck());
+    S.handNumber++;
+    S.dealerIndex = nextActiveSeat(S.dealerIndex);
+    S.stage='preflop';
+    S.raisesThisStreet=0;
+    S.lastResult=null;
+    const styleRoll = Math.random();
+    S.tableStyle = styleRoll<0.34 ? 'loose' : (styleRoll<0.67 ? 'sticky' : 'tight');
+
+    S.showOuts = false;
+    const active = activeIdx();
+    for(let r=0;r<2;r++) for(const i of active) S.players[i].hole.push(S.deck.pop());
+
+    const orderFromDealer = rotateFrom(S.dealerIndex, active); // [SB, BB, UTG, ..., BTN]
+    const sb = orderFromDealer[0], bb = orderFromDealer.length>1 ? orderFromDealer[1] : orderFromDealer[0];
+    postBlind(sb,0.5); postBlind(bb,1);
+    S.currentBet = 1;
+
+    const order = rotateFrom(bb, active); // starts at UTG, termina em SB, BB
+    S.queue = order;
+    S.log = [];
+    log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
+    if(!S.players[0].eliminated && S.players[0].hole.length===2){
+      log('Suas cartas: '+S.players[0].hole.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')+' | Sua posição: '+positionName(0));
+    }
+    if(S.tableStyle==='loose') log('🎲 Essa rodada a mesa está solta — galera paga mais fácil e blefa mais.');
+    else if(S.tableStyle==='sticky') log('🧠 Essa rodada a mesa está grudenta — quase ninguém folda, mas as apostas deles refletem mão de verdade.');
+    else log('🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
+    render();
+    processQueue();
+  }
+  function postBlind(i, amt){
+    const p = S.players[i];
+    if(p.eliminated) return;
+    const pay = Math.min(amt, p.chips);
+    p.chips=round2(p.chips-pay); p.bet=round2(p.bet+pay); S.pot=round2(S.pot+pay);
+    if(p.chips===0) p.allIn=true;
+  }
+  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } return arr; }
+
+  function applyAction(idx, action, raiseTo){
+    const p = S.players[idx];
+    if(action==='fold'){ p.folded=true; log(p.name+' desistiu (fold).'); }
+    else if(action==='check'){ log(p.name+' passou (check).'); }
+    else if(action==='call'){
+      const toCall = Math.min(S.currentBet-p.bet, p.chips);
+      p.chips=round2(p.chips-toCall); p.bet=round2(p.bet+toCall); S.pot=round2(S.pot+toCall);
+      if(p.chips===0) p.allIn=true;
+      log(p.name+' pagou R$'+fmtMoney(toCall)+'.');
+    } else if(action==='raise'){
+      const cost = Math.min(raiseTo-p.bet, p.chips);
+      p.chips=round2(p.chips-cost); p.bet=round2(p.bet+cost); S.pot=round2(S.pot+cost);
+      if(p.chips===0) p.allIn=true;
+      const isBet = S.currentBet===0;
+      if(p.bet>S.currentBet){
+        S.currentBet=p.bet; S.raisesThisStreet++;
+        const others = activeIdx().filter(i=>i!==idx && !S.players[i].allIn);
+        S.queue = rotateFrom(idx, others);
+      }
+      log(p.name+(isBet?' apostou R$':' aumentou para R$')+fmtMoney(p.bet)+'.');
+    }
+    p.acted=true;
+  }
+
+  function processQueue(){
+    const act = activeIdx();
+    if(act.length===1){ awardUncontested(act[0]); return; }
+    if(S.queue.length===0){ advanceStreet(); return; }
+    const nextIdx = S.queue[0];
+    const p = S.players[nextIdx];
+    if(p.folded || p.eliminated || p.allIn){ S.queue.shift(); processQueue(); return; }
+    if(p.isHuman){ S.waitingHuman=true; render(); return; }
+    S.waitingHuman=false; render();
+    setTimeout(()=>{
+      S.queue.shift();
+      const {action, amount} = botDecide(nextIdx);
+      applyAction(nextIdx, action, amount);
+      render();
+      processQueue();
+    }, 700);
+  }
+
+  function botDecide(idx){
+    const p = S.players[idx];
+    const others = activeIdx().filter(i=>i!==idx).length;
+    let eq = calcEquity(p.hole, S.community, others, 100);
+    if(eq===null) eq = 50;
+    eq = eq/100;
+    const toCall = S.currentBet - p.bet;
+    const potOdds = toCall>0 ? toCall/(S.pot+toCall) : 0;
+    const isLoose = S.tableStyle==='loose';
+    const isSticky = S.tableStyle==='sticky';
+    // Mesa solta: chama fácil e blefa bastante, pouca correlação entre aposta e força real.
+    // Mesa grudenta: quase nunca folda (ainda mais "sticky" que a solta), mas quase não blefa —
+    //   quando aumentam é porque a mão é de verdade. Fold equity é praticamente zero.
+    // Mesa séria: mais disciplinada, folda mais e blefa menos.
+    let looseness, foldEqFloor, foldEqChance, potOddsFoldChance;
+    let raiseThresholdHigh, raiseThresholdVeryHigh, raiseChanceHigh, raiseChanceVeryHigh;
+    let reraiseThreshold, reraiseChance;
+    if(isSticky){
+      looseness = 0.26;
+      foldEqFloor = 0.06;
+      foldEqChance = 0.22;
+      potOddsFoldChance = 0.30;
+      raiseThresholdHigh = 0.66;
+      raiseThresholdVeryHigh = 0.83;
+      raiseChanceHigh = 0.20;
+      raiseChanceVeryHigh = 0.62;
+      reraiseThreshold = 0.80;
+      reraiseChance = 0.24;
+    } else if(isLoose){
+      looseness = 0.20;
+      foldEqFloor = 0.10;
+      foldEqChance = 0.4;
+      potOddsFoldChance = 0.5;
+      raiseThresholdHigh = 0.60;
+      raiseThresholdVeryHigh = 0.78;
+      raiseChanceHigh = 0.35;
+      raiseChanceVeryHigh = 0.55;
+      reraiseThreshold = 0.72;
+      reraiseChance = 0.32;
+    } else {
+      looseness = 0.02;
+      foldEqFloor = 0.24;
+      foldEqChance = 0.7;
+      potOddsFoldChance = 0.85;
+      raiseThresholdHigh = 0.68;
+      raiseThresholdVeryHigh = 0.86;
+      raiseChanceHigh = 0.28;
+      raiseChanceVeryHigh = 0.45;
+      reraiseThreshold = 0.80;
+      reraiseChance = 0.22;
+    }
+    if(toCall<=0){
+      if(eq>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
+      if(eq>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
+      return {action:'check', amount:0};
+    } else {
+      const capped = Math.min(toCall, p.chips);
+      const raiseGate = isSticky ? S.raisesThisStreet>=3 : (isLoose ? S.raisesThisStreet>=2 : true);
+      if(eq + looseness < potOdds && raiseGate && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
+      if(eq<foldEqFloor && Math.random()<foldEqChance) return {action:'fold', amount:0};
+      if(eq>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
+      return {action:'call', amount:0};
+    }
+  }
+
+  function advanceStreet(){
+    S.players.forEach(p=>{ p.bet=0; p.acted=false; });
+    S.currentBet=0; S.raisesThisStreet=0;
+    if(S.stage==='preflop'){ S.deck.pop(); S.community.push(S.deck.pop(),S.deck.pop(),S.deck.pop()); S.stage='flop'; log('— Flop: '+S.community.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')); }
+    else if(S.stage==='flop'){ S.deck.pop(); S.community.push(S.deck.pop()); S.stage='turn'; log('— Turn: '+rlabel(S.community[3].r)+SYM[S.community[3].s]); }
+    else if(S.stage==='turn'){ S.deck.pop(); S.community.push(S.deck.pop()); S.stage='river'; log('— River: '+rlabel(S.community[4].r)+SYM[S.community[4].s]); }
+    else if(S.stage==='river'){ doShowdown(); return; }
+    const toAct = activeIdx().filter(i=>!S.players[i].allIn);
+    S.queue = rotateFrom(S.dealerIndex, toAct);
+    render();
+    processQueue();
+  }
+
+  function awardUncontested(winnerIdx){
+    const potWon = S.pot;
+    S.players[winnerIdx].chips = round2(S.players[winnerIdx].chips + S.pot);
+    log(S.players[winnerIdx].name+' ganhou R$'+fmtMoney(S.pot)+' (todos os outros desistiram).');
+    S.pot=0; S.stage='showdown'; S.waitingHuman=false;
+    S.lastResult = { winners:[winnerIdx], potWon, handName:null, uncontested:true };
+    finishHand([winnerIdx]);
+  }
+
+  function doShowdown(){
+    const contenders = activeIdx().map(i=>({i, ev: best7([...S.players[i].hole, ...S.community])}));
+    let bestEv=null;
+    contenders.forEach(c=>{ if(!bestEv||compareEval(c.ev,bestEv)>0) bestEv=c.ev; });
+    const winners = contenders.filter(c=>compareEval(c.ev,bestEv)===0);
+    const potWon = S.pot;
+    const share = Math.floor((S.pot/winners.length)*100)/100;
+    winners.forEach(w=> S.players[w.i].chips = round2(S.players[w.i].chips + share));
+    log('Showdown — '+winners.map(w=>S.players[w.i].name).join(', ')+' venceu(ram) com '+HAND_NAMES[bestEv.category]+'.');
+    contenders.forEach(c=>{
+      const p=S.players[c.i];
+      log('  '+p.name+': '+p.hole.map(cc=>rlabel(cc.r)+SYM[cc.s]).join(' '));
+    });
+    S.pot=0; S.stage='showdown'; S.waitingHuman=false;
+    S.lastResult = { winners: winners.map(w=>w.i), potWon, handName: HAND_NAMES[bestEv.category], uncontested:false };
+    finishHand(winners.map(w=>w.i));
+  }
+
+  function finishHand(winnerIdxs){
+    S.stats.handsPlayed++;
+    if(winnerIdxs.includes(0)) S.stats.handsWon++;
+    render();
+  }
+
+  // ---- human controls ----
+  window.pkHumanAct = function(action){
+    if(!S.waitingHuman) return;
+    S.queue.shift();
+    applyAction(0, action, 0);
+    S.waitingHuman=false;
+    render();
+    processQueue();
+  };
+  window.pkHumanRaise = function(){
+    if(!S.waitingHuman) return;
+    const input = document.getElementById('pk-raise-input');
+    let val = parseFloat(input.value);
+    const p = S.players[0];
+    const maxTo = p.bet + p.chips;
+    if(isNaN(val)) return;
+    val = round2(Math.max(S.currentBet + 1, Math.min(val, maxTo)));
+    S.queue.shift();
+    applyAction(0, 'raise', val);
+    S.waitingHuman=false;
+    render();
+    processQueue();
+  };
+  window.pkSetRaisePreset = function(mult){
+    const input = document.getElementById('pk-raise-input');
+    const p = S.players[0];
+    const potNow = S.pot + Math.max(0, S.currentBet-p.bet);
+    let to;
+    if(mult==='allin') to = p.bet+p.chips;
+    else to = S.currentBet + Math.max(1, roundToHalf(potNow*mult));
+    to = round2(Math.min(to, p.bet+p.chips));
+    input.value = to;
+  };
+  window.pkToggleEquity = function(){
+    S.showEquity = !S.showEquity;
+    document.getElementById('pk-equity-toggle').classList.toggle('on', S.showEquity);
+    render();
+  };
+  window.pkNewHand = function(){ newHand(); };
+  window.pkRestart = function(){ initState(); render(); };
+  window.pkToggleOutsCount = function(){ S.showOuts = !S.showOuts; renderYouPanel(); };
+  window.pkShowOutsDetail = function(){
+    const p = S.players[0];
+    const outsInfo = calcOuts(p.hole, S.community, S.deck);
+    const pct = S.deck.length ? (outsInfo.count/S.deck.length*100) : 0;
+    const el = document.getElementById('pk-export-modal');
+    let cardsHtml = outsInfo.cards.length
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">'+outsInfo.cards.map(c=>cardHTML(c,true)).join('')+'</div>'
+      : '<div style="color:var(--muted); margin-top:10px;">Nenhuma carta restante melhora sua mão neste momento.</div>';
+    el.innerHTML =
+      '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
+        '<div class="pk-modal" style="max-width:420px;">' +
+          '<h3>Seus outs</h3>' +
+          '<div class="pk-modal-note"><span class="mono" style="color:var(--gold); font-weight:800;">'+outsInfo.count+' outs</span> — cartas que ainda podem sair e melhoram sua mão (~<b class="mono">'+pct.toFixed(1)+'%</b> na próxima carta).</div>' +
+          cardsHtml +
+          '<div class="pk-modal-actions"><button class="pk-btn ghost" onclick="pkCloseExportModal()">Fechar</button></div>' +
+        '</div>' +
+      '</div>';
+  };
+
+  // ---- Range Wizard (grade de mãos pré-flop, ao estilo GTO Wizard) ----
+  const RW_RANK_ORDER = [14,13,12,11,10,9,8,7,6,5,4,3,2];
+  function rwHighCardVal(r){ if(r===14) return 10; if(r===13) return 8; if(r===12) return 7; if(r===11) return 6; return r/2; }
+  function rwChenScore(r1,r2,suited){
+    let score = rwHighCardVal(Math.max(r1,r2));
+    if(r1===r2){ return Math.max(score*2, 5); }
+    if(suited) score += 2;
+    const gap = Math.abs(r1-r2) - 1;
+    if(gap===1) score -= 1;
+    else if(gap===2) score -= 2;
+    else if(gap===3) score -= 4;
+    else if(gap>=4) score -= 5;
+    if(gap<=1 && Math.max(r1,r2) < 12) score += 1;
+    return score;
+  }
+  function rwIsSpeculative(r1,r2,suited){
+    if(r1===r2) return r1<=8;
+    if(!suited) return false;
+    const gap = Math.abs(r1-r2)-1;
+    return r1===14 || r2===14 || gap<=1;
+  }
+  let RW_CELLS = null;
+  function rwBuildGrid(){
+    if(RW_CELLS) return RW_CELLS;
+    const cells = [];
+    for(let row=0; row<13; row++){
+      for(let col=0; col<13; col++){
+        const rr = RW_RANK_ORDER[row], rc = RW_RANK_ORDER[col];
+        const isPair = row===col;
+        const suited = row<col;
+        const r1 = isPair ? rr : Math.max(rr,rc);
+        const r2 = isPair ? rr : Math.min(rr,rc);
+        const label = isPair ? (rlabel(rr)+rlabel(rr)) : (rlabel(r1)+rlabel(r2)+(suited?'s':'o'));
+        const score = rwChenScore(r1,r2,isPair?false:suited);
+        cells.push({row,col,r1,r2,isPair,label,score,speculative: rwIsSpeculative(r1,r2,isPair?false:suited)});
+      }
+    }
+    const sorted = cells.slice().sort((a,b)=>b.score-a.score);
+    sorted.forEach((c,i)=>{ c.pct = (i+1)/sorted.length*100; });
+    RW_CELLS = cells;
+    return cells;
+  }
+  const RW_POSITIONS = [
+    {key:'UTG', label:'UTG', threshold:10, late:false},
+    {key:'UTG1', label:'UTG+1', threshold:12, late:false},
+    {key:'MP', label:'MP', threshold:15, late:false},
+    {key:'HJ', label:'HJ', threshold:19, late:false},
+    {key:'CO', label:'CO', threshold:25, late:true},
+    {key:'BTN', label:'BTN', threshold:40, late:true},
+    {key:'SB', label:'SB', threshold:32, late:true},
+    {key:'BB', label:'BB (defesa)', threshold:55, late:true},
+  ];
+  const RW_STYLES = {
+    loose: {label:'Mesa solta', raiseMult:1.1, specMult:1.2, note:'Eles pagam fácil e blefam mais — isolar um pouco mais largo compensa, mas dimensione as apostas de valor com folga.'},
+    sticky:{label:'Mesa grudenta', raiseMult:0.85, specMult:1.3, note:'Quase ninguém folda e quase ninguém blefa. Abra mais linear (mais valor, menos blefe) e use mãos especulativas em posição só pela odds implícita.'},
+    tight: {label:'Mesa séria', raiseMult:0.9, specMult:1.0, note:'Mais gente folda e blefa menos. Um range de abertura padrão funciona bem, sem precisar alargar por odds implícitas.'},
+  };
+  let rwState = { posKey:'CO', style:'sticky', selectedLabel:null };
+
+  window.pkOpenRangeWizard = function(){ rwRenderModal(); };
+  window.pkRwSetPos = function(key){ rwState.posKey = key; rwState.selectedLabel=null; rwRenderModal(); };
+  window.pkRwSetStyle = function(style){ rwState.style = style; rwState.selectedLabel=null; rwRenderModal(); };
+  window.pkRwSelect = function(label){ rwState.selectedLabel = label; rwRenderModal(); };
+
+  function rwActionFor(cell, pos, style){
+    const raiseThresh = pos.threshold * style.raiseMult;
+    if(cell.pct <= raiseThresh) return pos.key==='BB' ? 'defender' : 'abrir';
+    if(pos.late && cell.speculative){
+      const specThresh = pos.threshold * style.specMult;
+      if(cell.pct <= specThresh) return 'pagar';
+    }
+    return 'fold';
+  }
+
+  function rwRenderModal(){
+    const cells = rwBuildGrid();
+    const pos = RW_POSITIONS.find(p=>p.key===rwState.posKey);
+    const style = RW_STYLES[rwState.style];
+    const posBtns = RW_POSITIONS.map(p=>'<button class="pk-preset" style="'+(p.key===pos.key?'border-color:var(--gold);color:var(--gold);':'')+'" onclick="pkRwSetPos(\''+p.key+'\')">'+p.label+'</button>').join('');
+    const styleBtns = Object.keys(RW_STYLES).map(k=>'<button class="pk-preset" style="'+(k===rwState.style?'border-color:var(--gold);color:var(--gold);':'')+'" onclick="pkRwSetStyle(\''+k+'\')">'+RW_STYLES[k].label+'</button>').join('');
+
+    let grid = '<div style="display:grid; grid-template-columns:repeat(13,1fr); gap:2px; margin-top:10px;">';
+    cells.forEach(c=>{
+      const action = rwActionFor(c, pos, style);
+      let bg, fg;
+      if(action==='abrir'||action==='defender'){ bg='rgba(212,175,55,0.85)'; fg='#1a1712'; }
+      else if(action==='pagar'){ bg='rgba(127,183,232,0.75)'; fg='#0a1712'; }
+      else { bg='rgba(255,255,255,0.08)'; fg='var(--muted)'; }
+      const sel = rwState.selectedLabel===c.label;
+      grid += '<div onclick="pkRwSelect(\''+c.label+'\')" style="cursor:pointer; text-align:center; padding:4px 0; border-radius:3px; font-size:10px; font-weight:700; background:'+bg+'; color:'+fg+';'+(sel?'box-shadow:0 0 0 2px #fff inset;':'')+'">'+c.label+'</div>';
+    });
+    grid += '</div>';
+
+    let detail = '';
+    if(rwState.selectedLabel){
+      const c = cells.find(x=>x.label===rwState.selectedLabel);
+      const action = rwActionFor(c, pos, style);
+      const actionText = {abrir:'Abrir / aumentar', defender:'Defender / pagar', pagar:'Pagar por odds implícitas (mão especulativa em posição)', fold:'Fold'}[action];
+      detail = '<div class="pk-modal-note" style="margin-top:8px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; padding:8px 10px;"><b class="mono" style="color:var(--gold)">'+c.label+'</b> — top <b class="mono">'+c.pct.toFixed(1)+'%</b> das mãos iniciais. Em '+pos.label+' numa '+style.label.toLowerCase()+': <b>'+actionText+'</b>.</div>';
+    }
+
+    const el = document.getElementById('pk-export-modal');
+    el.innerHTML =
+      '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
+        '<div class="pk-modal" style="max-width:560px;">' +
+          '<h3>Grade de mãos — pré-flop</h3>' +
+          '<div class="pk-modal-note">Aproximação didática (fórmula de Chen + frequências de abertura padrão), ajustada aos 3 estilos de mesa do simulador. Não é um solver de GTO de verdade — pensa nisso como um guia de referência, não uma verdade absoluta.</div>' +
+          '<div style="display:flex; flex-wrap:wrap; gap:6px;">'+posBtns+'</div>' +
+          '<div style="display:flex; flex-wrap:wrap; gap:6px;">'+styleBtns+'</div>' +
+          '<div class="pk-modal-note" style="font-style:italic;">'+style.note+'</div>' +
+          grid +
+          '<div style="display:flex; flex-wrap:wrap; gap:12px; font-size:11px; color:var(--muted); margin-top:8px;">'+
+            '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,175,55,0.85);border-radius:2px;margin-right:4px;"></span>Abrir/Defender</span>'+
+            '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(127,183,232,0.75);border-radius:2px;margin-right:4px;"></span>Pagar (odds implícitas)</span>'+
+            '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.15);border-radius:2px;margin-right:4px;"></span>Fold</span>'+
+          '</div>' +
+          detail +
+          '<div class="pk-modal-actions"><button class="pk-btn ghost" onclick="pkCloseExportModal()">Fechar</button></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  window.pkExportSession = function(){
+    const p = S.players[0];
+    const net = round2(p.chips - 50*p.buyIns);
+    const wr = S.stats.handsPlayed ? ((S.stats.handsWon/S.stats.handsPlayed)*100).toFixed(1) : '0';
+    let text = '';
+    text += '===== HISTÓRICO DA SESSÃO — MESA DE TREINO DE POKER =====\n';
+    text += 'Data/hora de início: '+S.sessionStartTime.toLocaleString('pt-BR')+'\n';
+    text += 'Mãos jogadas: '+S.stats.handsPlayed+' | Taxa de vitória: '+wr+'%\n';
+    text += 'Saldo da sessão: '+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+' | Fichas atuais: R$'+fmtMoney(p.chips)+' | Buy-ins: '+p.buyIns+'/3\n';
+    text += '===========================================================\n\n';
+    text += S.fullSessionLog.length ? S.fullSessionLog.join('\n') : '(nenhuma mão jogada ainda)';
+    showExportModal(text);
+  };
+
+  function showExportModal(text){
+    const el = document.getElementById('pk-export-modal');
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML =
+      '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
+        '<div class="pk-modal">' +
+          '<h3>Histórico da sessão</h3>' +
+          '<div class="pk-modal-note">Copie o texto abaixo e cole na conversa com o Claude para revisar sua sessão.</div>' +
+          '<textarea id="pk-export-textarea" readonly onclick="this.select()">'+escaped+'</textarea>' +
+          '<div class="pk-modal-actions">' +
+            '<button class="pk-btn ghost" onclick="pkCloseExportModal()">Fechar</button>' +
+            '<button class="pk-btn raise" onclick="pkCopyExport()">Copiar texto</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    const ta = document.getElementById('pk-export-textarea');
+    ta.focus(); ta.select();
+  }
+  window.pkCloseExportModal = function(){ document.getElementById('pk-export-modal').innerHTML = ''; };
+  window.pkCopyExport = function(){
+    const ta = document.getElementById('pk-export-textarea');
+    ta.focus(); ta.select();
+    let copied = false;
+    try {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value);
+        copied = true;
+      }
+    } catch(e){}
+    if(!copied){
+      try { copied = document.execCommand('copy'); } catch(e){ copied = false; }
+    }
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = copied ? 'Copiado! ✓' : 'Selecione e copie (Ctrl+C)';
+    setTimeout(()=>{ btn.textContent = original; }, 2000);
+  };
+
+  // ---- render ----
+  function render(){
+    renderTable();
+    renderWinnerBanner();
+    renderYouPanel();
+    renderLog();
+    renderStats();
+  }
+
+  function renderTable(){
+    const table = document.getElementById('pk-table');
+    let html = '';
+    html += '<div class="pk-stage-tag">'+(S.stage==='idle'?'Aguardando início':S.stage)+'</div>';
+    html += '<div class="pk-pot"><div class="amt mono">R$'+fmtMoney(S.pot)+'</div><div class="lbl">Pote</div></div>';
+    html += '<div class="pk-community">';
+    for(let i=0;i<5;i++){ html += S.community[i] ? cardHTML(S.community[i]) : '<div class="pk-card" style="opacity:.15"></div>'; }
+    html += '</div>';
+
+    for(let i=0;i<NSEATS;i++){
+      const theta = (Math.PI/2) - i*(Math.PI/4);
+      const x = 50 + 44*Math.cos(theta);
+      const y = 50 + 44*Math.sin(theta);
+      const p = S.players[i];
+      const isActing = S.queue[0]===i && (S.stage!=='idle' && S.stage!=='showdown');
+      const isWinner = S.stage==='showdown' && S.lastResult && S.lastResult.winners.includes(i);
+      const isElim = p.eliminated;
+      html += '<div class="pk-seat'+(p.folded?' folded':'')+(isElim?' eliminated':'')+(isActing?' acting':'')+(isWinner?' winner':'')+'" style="left:'+x+'%; top:'+y+'%;">';
+      if(isWinner) html += '<span class="crown">👑</span>';
+      html += '<div class="name">'+p.name+(p.isHuman?' (você)':'')+'</div>';
+      html += '<div class="pos">'+(isElim ? 'Fora da mesa' : (S.dealerIndex>=0?positionName(i):''))+'</div>';
+      html += '<div class="cards">';
+      if(!isElim && p.hole.length===2){
+        if(p.isHuman) html += cardHTML(p.hole[0])+cardHTML(p.hole[1]);
+        else if(S.stage==='showdown' && !p.folded) html += cardHTML(p.hole[0])+cardHTML(p.hole[1]);
+        else if(p.folded) html += backHTML()+backHTML();
+        else html += backHTML()+backHTML();
+      }
+      html += '</div>';
+      html += '<div class="chips mono">'+(isElim?'—':'R$'+fmtMoney(p.chips))+'</div>';
+      if(!isElim && p.bet>0) html += '<div class="bet-chip mono">R$'+fmtMoney(p.bet)+'</div>';
+      html += '</div>';
+    }
+    if(S.dealerIndex>=0){
+      const theta = (Math.PI/2) - S.dealerIndex*(Math.PI/4);
+      const x = 50 + 38*Math.cos(theta);
+      const y = 50 + 37*Math.sin(theta);
+      html += '<div class="pk-dealer-btn" style="left:'+x+'%; top:'+y+'%;">D</div>';
+    }
+    if(S.gameOver){
+      const reason = S.players[0].eliminated ? 'Você usou seus 3 buy-ins (R$50 cada) e ficou sem fichas.' : 'Não há jogadores suficientes para continuar a mesa.';
+      html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">'+reason+' Isso acontece — revise a sessão no histórico e recomece quando quiser.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
+    }
+    table.innerHTML = html;
+  }
+
+  function getEquityInfo(){
+    const p = S.players[0];
+    if(p.hole.length<2) return null;
+    const others = activeIdx().filter(i=>i!==0).length;
+    if(others<=0) return null;
+    const eq = calcEquity(p.hole, S.community, others, 350);
+    return eq;
+  }
+
+  function renderWinnerBanner(){
+    const el = document.getElementById('pk-winner-banner');
+    if(S.stage!=='showdown' || !S.lastResult){ el.innerHTML=''; return; }
+    const r = S.lastResult;
+    const youWon = r.winners.includes(0);
+    const names = r.winners.map(i=> i===0 ? 'Você' : S.players[i].name).join(' e ');
+    let title, sub;
+    if(r.uncontested){
+      title = (youWon ? 'Você ganhou' : names+' ganhou') + ' R$'+fmtMoney(r.potWon)+'!';
+      sub = 'Todo mundo desistiu antes do showdown.';
+    } else {
+      title = (youWon ? 'Você venceu' : names+' venceu') + ' o pote de R$'+fmtMoney(r.potWon)+'!';
+      sub = 'Mão vencedora: '+r.handName+'.';
+    }
+    el.innerHTML = '<div class="pk-winbanner'+(youWon?' you':'')+'"><div class="trophy">'+(youWon?'🏆':'🃏')+'</div><div><div class="wtitle">'+title+'</div><div class="wsub">'+sub+'</div></div></div>';
+  }
+
+  function renderYouPanel(){
+    const panel = document.getElementById('pk-you-panel');
+    const p = S.players[0];
+    let html = '<div class="pk-you-row">';
+    html += '<div class="pk-you-cards">';
+    if(p.hole.length===2) html += cardHTML(p.hole[0],true)+cardHTML(p.hole[1],true);
+    if((S.stage==='flop' || S.stage==='turn') && p.hole.length===2){
+      const outsInfo = calcOuts(p.hole, S.community, S.deck);
+      html += '<button class="pk-outs-pill'+(S.showOuts?' active':'')+'" onclick="pkToggleOutsCount()">'+(S.showOuts ? ('OUTS: '+outsInfo.count) : 'OUTS')+'</button>';
+      if(S.showOuts){
+        html += '<button class="pk-outs-icon-btn" onclick="pkShowOutsDetail()" title="Ver cartas">🔍</button>';
+      }
+    }
+    html += '<div style="margin-left:8px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Sua posição</div><div style="font-weight:700;">'+(S.dealerIndex>=0?positionName(0):'—')+'</div></div>';
+    html += '</div>';
+
+    if(S.showEquity && S.stage!=='idle' && S.stage!=='showdown'){
+      const eq = getEquityInfo();
+      if(eq!==null){
+        const color = eq>=60 ? '#4caf7d' : (eq>=35 ? 'var(--gold)' : 'var(--red)');
+        html += '<div class="pk-equity-badge"><div class="pct mono">'+eq.toFixed(1)+'%</div><div class="sub">Chance de vitória estimada</div>';
+        html += '<div class="pk-equity-bar"><div class="pk-equity-fill" style="width:'+eq+'%; background:'+color+';"></div></div>';
+        const toCall = S.currentBet - p.bet;
+        if(toCall>0){
+          const potOdds = (toCall/(S.pot+toCall))*100;
+          html += '<div class="pk-oddshint">Pot odds exigem ≥ <b class="mono">'+potOdds.toFixed(0)+'%</b> para pagar valer a pena</div>';
+        }
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+
+    html += '<div class="pk-actions">';
+    if(S.stage==='idle' || S.stage==='showdown'){
+      html += '<button class="pk-btn next" onclick="pkNewHand()">'+(S.stage==='idle'?'Começar sessão':'Próxima mão')+'</button>';
+    } else if(S.waitingHuman){
+      const toCall = S.currentBet - p.bet;
+      html += '<button class="pk-btn fold" onclick="pkHumanAct(\'fold\')">Fold</button>';
+      if(toCall<=0){
+        html += '<button class="pk-btn call" onclick="pkHumanAct(\'check\')">Passar (check)</button>';
+      } else {
+        html += '<button class="pk-btn call" onclick="pkHumanAct(\'call\')">Pagar R$'+fmtMoney(toCall)+'</button>';
+      }
+      const minTo = round2(S.currentBet + 1);
+      html += '<div class="pk-raisebox"><span class="mono" style="font-size:12px;color:var(--muted)">R$</span><input id="pk-raise-input" type="number" value="'+minTo+'" min="'+minTo+'"/>';
+      html += '<button class="pk-preset" onclick="pkSetRaisePreset(0.5)">½ pote</button>';
+      html += '<button class="pk-preset" onclick="pkSetRaisePreset(1)">Pote</button>';
+      html += '<button class="pk-preset" onclick="pkSetRaisePreset(\'allin\')">All-in</button>';
+      html += '<button class="pk-btn raise" onclick="pkHumanRaise()">'+(S.currentBet===0?'Apostar':'Aumentar')+'</button></div>';
+    } else {
+      html += '<div style="color:var(--muted); font-size:13px;">Aguardando os outros jogadores agirem…</div>';
+    }
+    html += '</div>';
+
+    panel.innerHTML = html;
+  }
+
+  function renderLog(){
+    const el = document.getElementById('pk-log');
+    el.innerHTML = S.log.map(l=>'<div>'+l+'</div>').join('');
+    el.scrollTop = el.scrollHeight;
+    const styleTag = S.stage==='idle' ? '' : (S.tableStyle==='loose' ? '<span class="pk-style-tag loose">Mesa solta</span>' : (S.tableStyle==='sticky' ? '<span class="pk-style-tag sticky">Mesa grudenta</span>' : '<span class="pk-style-tag tight">Mesa séria</span>'));
+    document.getElementById('pk-handinfo').innerHTML = 'Mão #'+S.handNumber+styleTag;
+  }
+
+  function renderStats(){
+    const el = document.getElementById('pk-stats');
+    const p = S.players[0];
+    const net = round2(p.chips - 50*p.buyIns);
+    const wr = S.stats.handsPlayed ? ((S.stats.handsWon/S.stats.handsPlayed)*100).toFixed(0) : '0';
+    el.innerHTML =
+      '<div class="pk-stat"><div class="v mono">'+S.stats.handsPlayed+'</div><div class="l">Mãos jogadas</div></div>'+
+      '<div class="pk-stat"><div class="v mono">'+wr+'%</div><div class="l">Taxa de vitória</div></div>'+
+      '<div class="pk-stat"><div class="v mono" style="color:'+(net>=0?'#4caf7d':'var(--red)')+'">'+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+'</div><div class="l">Saldo da sessão</div></div>'+
+      '<div class="pk-stat"><div class="v mono">R$'+fmtMoney(p.chips)+'</div><div class="l">Fichas atuais</div></div>'+
+      '<div class="pk-stat"><div class="v mono">'+p.buyIns+'/3</div><div class="l">Buy-ins usados</div></div>';
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>
