@@ -207,7 +207,7 @@
 <div id="pk-root">
   <div class="pk-header">
     <div>
-      <div class="pk-title">♠ Mesa de Treino — 8 Jogadores</div>
+      <div class="pk-title" id="pk-title">♠ Mesa de Treino</div>
       <div class="pk-sub" id="pk-handinfo">Mão #0</div>
     </div>
     <div class="pk-toggle-wrap">
@@ -248,7 +248,7 @@
   const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
   const RCOL = {s:'b',c:'b',h:'r',d:'r'};
   const HAND_NAMES = ['Carta Alta','Par','Dois Pares','Trinca','Sequência','Flush','Full House','Quadra','Straight Flush'];
-  const BOT_NAMES = ['Marina','Tiago','Bia','Rafa','Duda','Léo','Carol'];
+  const BOT_NAMES = ['Marina','Tiago','Bia','Rafa','Duda','Léo','Carol','Gabi'];
 
   function round2(x){ return Math.round(x*100)/100; }
   function roundToHalf(x){ return Math.round(x*2)/2; }
@@ -345,7 +345,7 @@
   }
 
   // ---- game state ----
-  const NSEATS = 8;
+  let NSEATS = 8;
   let S = null;
 
   function freshPlayers(){
@@ -374,7 +374,11 @@
   }
   initState();
 
+  const STAGE_LBL = {preflop:'Pré-flop',flop:'Flop',turn:'Turn',river:'River'};
   function log(msg){ S.log.push(msg); if(S.log.length>60) S.log.shift(); S.fullSessionLog.push(msg); }
+  function flog(msg){ S.fullSessionLog.push(msg); }
+  function logAct(msg){ S.log.push(msg); if(S.log.length>60) S.log.shift(); S.fullSessionLog.push('  ['+(STAGE_LBL[S.stage]||S.stage)+'] '+msg+' (pote: R$'+fmtMoney(S.pot)+')'); }
+  function cardsStr(cs){ return cs.map(c=>rlabel(c.r)+SYM[c.s]).join(' '); }
   function activeIdx(){ return S.players.map((_,i)=>i).filter(i=>!S.players[i].folded && !S.players[i].eliminated); }
   function rotateFrom(idx, list){
     const out=[];
@@ -382,9 +386,13 @@
     return out;
   }
   function positionName(seatIdx){
-    const dist = (seatIdx - S.dealerIndex + NSEATS) % NSEATS;
-    const names = ['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
-    return names[dist];
+    const alive = S.players.map((_,i)=>i).filter(i=>!S.players[i].eliminated).sort((a,b)=>((a-S.dealerIndex+NSEATS)%NSEATS)-((b-S.dealerIndex+NSEATS)%NSEATS));
+    const idx = alive.indexOf(seatIdx), n = alive.length;
+    if(idx<0 || n<2) return '';
+    if(n===2) return idx===0 ? 'BTN/SB' : 'BB';
+    if(idx<3) return ['BTN','SB','BB'][idx];
+    const tails = {1:['CO'],2:['HJ','CO'],3:['UTG','HJ','CO'],4:['UTG','MP','HJ','CO'],5:['UTG','UTG+1','MP','HJ','CO'],6:['UTG','UTG+1','MP','LJ','HJ','CO']};
+    return tails[n-3][idx-3];
   }
   function nextActiveSeat(from){
     const act = S.players.map((_,i)=>i).filter(i=>!S.players[i].eliminated);
@@ -431,7 +439,11 @@
     for(let r=0;r<2;r++) for(const i of active) S.players[i].hole.push(S.deck.pop());
 
     const orderFromDealer = rotateFrom(S.dealerIndex, active); // [SB, BB, UTG, ..., BTN]
-    const sb = orderFromDealer[0], bb = orderFromDealer.length>1 ? orderFromDealer[1] : orderFromDealer[0];
+    let sb = orderFromDealer[0], bb = orderFromDealer.length>1 ? orderFromDealer[1] : orderFromDealer[0];
+    if(active.length===2){ sb = S.dealerIndex; bb = orderFromDealer[0]; } // heads-up: o botão paga o small blind
+    S.handStartChips = S.players[0].chips;
+    const stacksStr = active.map(i=>S.players[i].name+' ('+positionName(i)+') R$'+fmtMoney(S.players[i].chips)).join(' | ');
+    const blindsStr = S.players[sb].name+' R$0,50 / '+S.players[bb].name+' R$1,00';
     postBlind(sb,0.5); postBlind(bb,1);
     S.currentBet = 1;
 
@@ -439,6 +451,8 @@
     S.queue = order;
     S.log = [];
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
+    flog('Stacks iniciais: '+stacksStr);
+    flog('Blinds: '+blindsStr);
     if(!S.players[0].eliminated && S.players[0].hole.length===2){
       log('Suas cartas: '+S.players[0].hole.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')+' | Sua posição: '+positionName(0));
     }
@@ -459,13 +473,13 @@
 
   function applyAction(idx, action, raiseTo){
     const p = S.players[idx];
-    if(action==='fold'){ p.folded=true; log(p.name+' desistiu (fold).'); }
-    else if(action==='check'){ log(p.name+' passou (check).'); }
+    if(action==='fold'){ p.folded=true; logAct(p.name+' desistiu (fold).'); }
+    else if(action==='check'){ logAct(p.name+' passou (check).'); }
     else if(action==='call'){
       const toCall = Math.min(S.currentBet-p.bet, p.chips);
       p.chips=round2(p.chips-toCall); p.bet=round2(p.bet+toCall); S.pot=round2(S.pot+toCall);
       if(p.chips===0) p.allIn=true;
-      log(p.name+' pagou R$'+fmtMoney(toCall)+'.');
+      logAct(p.name+' pagou R$'+fmtMoney(toCall)+(p.allIn?' (all-in)':'')+'.');
     } else if(action==='raise'){
       const cost = Math.min(raiseTo-p.bet, p.chips);
       p.chips=round2(p.chips-cost); p.bet=round2(p.bet+cost); S.pot=round2(S.pot+cost);
@@ -476,7 +490,7 @@
         const others = activeIdx().filter(i=>i!==idx && !S.players[i].allIn);
         S.queue = rotateFrom(idx, others);
       }
-      log(p.name+(isBet?' apostou R$':' aumentou para R$')+fmtMoney(p.bet)+'.');
+      logAct(p.name+(isBet?' apostou R$':' aumentou para R$')+fmtMoney(p.bet)+(p.allIn?' (all-in)':'')+'.');
     }
     p.acted=true;
   }
@@ -594,10 +608,11 @@
     const potWon = S.pot;
     const share = Math.floor((S.pot/winners.length)*100)/100;
     winners.forEach(w=> S.players[w.i].chips = round2(S.players[w.i].chips + share));
+    log('Board final: '+cardsStr(S.community)+' | pote R$'+fmtMoney(potWon)+'.');
     log('Showdown — '+winners.map(w=>S.players[w.i].name).join(', ')+' venceu(ram) com '+HAND_NAMES[bestEv.category]+'.');
     contenders.forEach(c=>{
       const p=S.players[c.i];
-      log('  '+p.name+': '+p.hole.map(cc=>rlabel(cc.r)+SYM[cc.s]).join(' '));
+      log('  '+p.name+' ('+positionName(c.i)+'): '+cardsStr(p.hole)+' → '+HAND_NAMES[c.ev.category]);
     });
     S.pot=0; S.stage='showdown'; S.waitingHuman=false;
     S.lastResult = { winners: winners.map(w=>w.i), potWon, handName: HAND_NAMES[bestEv.category], uncontested:false };
@@ -607,12 +622,25 @@
   function finishHand(winnerIdxs){
     S.stats.handsPlayed++;
     if(winnerIdxs.includes(0)) S.stats.handsWon++;
+    const me = S.players[0], d = round2(me.chips - S.handStartChips);
+    flog('Resultado da mão #'+S.handNumber+' para você: '+(d>=0?'+':'-')+'R$'+fmtMoney(Math.abs(d))+' | fichas agora: R$'+fmtMoney(me.chips)+(me.folded?' (você deu fold)':''));
+    flog('');
     render();
   }
 
+  function logHumanContext(){
+    const p = S.players[0];
+    const toCall = Math.max(0, round2(S.currentBet - p.bet));
+    const eq = getEquityInfo();
+    let s = '  ↳ Sua decisão ('+(STAGE_LBL[S.stage]||S.stage)+'): cartas '+cardsStr(p.hole)+(S.community.length?' | board '+cardsStr(S.community):'')+' | posição '+positionName(0)+' | pote R$'+fmtMoney(S.pot)+' | a pagar R$'+fmtMoney(toCall)+' | suas fichas R$'+fmtMoney(p.chips)+' | adversários ativos: '+(activeIdx().length-1);
+    if(toCall>0) s += ' | pot odds '+(toCall/(S.pot+toCall)*100).toFixed(0)+'%';
+    if(eq!==null) s += ' | chance estimada '+eq.toFixed(1)+'%';
+    flog(s);
+  }
   // ---- human controls ----
   window.pkHumanAct = function(action){
     if(!S.waitingHuman) return;
+    logHumanContext();
     S.queue.shift();
     applyAction(0, action, 0);
     S.waitingHuman=false;
@@ -627,6 +655,7 @@
     const maxTo = p.bet + p.chips;
     if(isNaN(val)) return;
     val = round2(Math.max(S.currentBet + 1, Math.min(val, maxTo)));
+    logHumanContext();
     S.queue.shift();
     applyAction(0, 'raise', val);
     S.waitingHuman=false;
@@ -650,6 +679,7 @@
   };
   window.pkNewHand = function(){ newHand(); };
   window.pkRestart = function(){ initState(); render(); };
+  window.pkSetPlayers = function(n){ if(S.stage!=='idle') return; NSEATS = n; S.players = freshPlayers(); render(); };
   window.pkToggleOutsCount = function(){ S.showOuts = !S.showOuts; renderYouPanel(); };
   window.pkShowOutsDetail = function(){
     const p = S.players[0];
@@ -716,11 +746,13 @@
     {key:'UTG', label:'UTG', threshold:10, late:false},
     {key:'UTG1', label:'UTG+1', threshold:12, late:false},
     {key:'MP', label:'MP', threshold:15, late:false},
+    {key:'LJ', label:'LJ', threshold:17, late:false},
     {key:'HJ', label:'HJ', threshold:19, late:false},
     {key:'CO', label:'CO', threshold:25, late:true},
     {key:'BTN', label:'BTN', threshold:40, late:true},
     {key:'SB', label:'SB', threshold:32, late:true},
     {key:'BB', label:'BB (defesa)', threshold:55, late:true},
+    {key:'HU', label:'HU (BTN/SB)', threshold:80, late:true},
   ];
   const RW_STYLES = {
     loose: {label:'Mesa solta', raiseMult:1.1, specMult:1.2, note:'Eles pagam fácil e blefam mais — isolar um pouco mais largo compensa, mas dimensione as apostas de valor com folga.'},
@@ -799,10 +831,12 @@
     let text = '';
     text += '===== HISTÓRICO DA SESSÃO — MESA DE TREINO DE POKER =====\n';
     text += 'Data/hora de início: '+S.sessionStartTime.toLocaleString('pt-BR')+'\n';
+    text += 'Jogadores na mesa: '+NSEATS+' | Blinds: R$0,50/R$1,00 | Stack inicial: R$50,00 (até 3 buy-ins)\n';
     text += 'Mãos jogadas: '+S.stats.handsPlayed+' | Taxa de vitória: '+wr+'%\n';
     text += 'Saldo da sessão: '+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+' | Fichas atuais: R$'+fmtMoney(p.chips)+' | Buy-ins: '+p.buyIns+'/3\n';
     text += '===========================================================\n\n';
     text += S.fullSessionLog.length ? S.fullSessionLog.join('\n') : '(nenhuma mão jogada ainda)';
+    text += '\n\n===== FIM DO HISTÓRICO ('+S.fullSessionLog.length+' linhas de log) =====';
     showExportModal(text);
   };
 
@@ -813,11 +847,12 @@
       '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
         '<div class="pk-modal">' +
           '<h3>Histórico da sessão</h3>' +
-          '<div class="pk-modal-note">Copie o texto abaixo e cole na conversa com o Claude para revisar sua sessão.</div>' +
+          '<div class="pk-modal-note">Copie o texto abaixo e cole na conversa com o Claude (ou baixe o .txt e anexe o arquivo). '+text.split('\n').length+' linhas · '+text.length+' caracteres. O texto termina com "FIM DO HISTÓRICO" — se não vir isso ao colar, ele foi cortado.</div>' +
           '<textarea id="pk-export-textarea" readonly onclick="this.select()">'+escaped+'</textarea>' +
           '<div class="pk-modal-actions">' +
             '<button class="pk-btn ghost" onclick="pkCloseExportModal()">Fechar</button>' +
-            '<button class="pk-btn raise" onclick="pkCopyExport()">Copiar texto</button>' +
+            '<button class="pk-btn ghost" onclick="pkDownloadExport()">Baixar .txt</button>' +
+            '<button class="pk-btn raise" onclick="pkCopyExport(event)">Copiar texto</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -825,23 +860,23 @@
     ta.focus(); ta.select();
   }
   window.pkCloseExportModal = function(){ document.getElementById('pk-export-modal').innerHTML = ''; };
-  window.pkCopyExport = function(){
+  window.pkCopyExport = function(ev){
     const ta = document.getElementById('pk-export-textarea');
-    ta.focus(); ta.select();
-    let copied = false;
-    try {
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(ta.value);
-        copied = true;
-      }
-    } catch(e){}
-    if(!copied){
-      try { copied = document.execCommand('copy'); } catch(e){ copied = false; }
-    }
-    const btn = event.target;
+    const btn = ev.currentTarget || ev.target;
     const original = btn.textContent;
-    btn.textContent = copied ? 'Copiado! ✓' : 'Selecione e copie (Ctrl+C)';
-    setTimeout(()=>{ btn.textContent = original; }, 2000);
+    const done = ok=>{ btn.textContent = ok ? 'Copiado! ✓' : 'Selecione e copie (Ctrl+C)'; setTimeout(()=>{ btn.textContent = original; }, 2000); };
+    const fallback = ()=>{ ta.focus(); ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} done(ok); };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(()=>done(true), fallback); }
+    else fallback();
+  };
+  window.pkDownloadExport = function(){
+    const ta = document.getElementById('pk-export-textarea');
+    const blob = new Blob([ta.value], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sessao-poker-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
   };
 
   // ---- render ----
@@ -863,7 +898,7 @@
     html += '</div>';
 
     for(let i=0;i<NSEATS;i++){
-      const theta = (Math.PI/2) - i*(Math.PI/4);
+      const theta = (Math.PI/2) - i*(2*Math.PI/NSEATS);
       const x = 50 + 44*Math.cos(theta);
       const y = 50 + 44*Math.sin(theta);
       const p = S.players[i];
@@ -887,13 +922,13 @@
       html += '</div>';
     }
     if(S.dealerIndex>=0){
-      const theta = (Math.PI/2) - S.dealerIndex*(Math.PI/4);
+      const theta = (Math.PI/2) - S.dealerIndex*(2*Math.PI/NSEATS);
       const x = 50 + 38*Math.cos(theta);
       const y = 50 + 37*Math.sin(theta);
       html += '<div class="pk-dealer-btn" style="left:'+x+'%; top:'+y+'%;">D</div>';
     }
     if(S.gameOver){
-      const reason = S.players[0].eliminated ? 'Você usou seus 3 buy-ins (R$50 cada) e ficou sem fichas.' : 'Não há jogadores suficientes para continuar a mesa.';
+      const reason = S.players[0].eliminated ? 'Você usou seus 3 buy-ins (R$50 cada) e ficou sem fichas.' : 'Todos os adversários foram eliminados — você venceu a mesa! 🏆';
       html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">'+reason+' Isso acontece — revise a sessão no histórico e recomece quando quiser.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
     }
     table.innerHTML = html;
@@ -959,6 +994,11 @@
 
     html += '<div class="pk-actions">';
     if(S.stage==='idle' || S.stage==='showdown'){
+      if(S.stage==='idle'){
+        html += '<div style="width:100%;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Quantos jogadores na mesa?</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
+        for(let n=2;n<=9;n++){ html += '<button class="pk-preset" style="font-size:14px;padding:8px 14px;'+(n===NSEATS?'border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,0.12);':'')+'" onclick="pkSetPlayers('+n+')">'+(n===2?'2 · Heads-up':n)+'</button>'; }
+        html += '</div></div>';
+      }
       html += '<button class="pk-btn next" onclick="pkNewHand()">'+(S.stage==='idle'?'Começar sessão':'Próxima mão')+'</button>';
     } else if(S.waitingHuman){
       const toCall = S.currentBet - p.bet;
@@ -983,6 +1023,7 @@
   }
 
   function renderLog(){
+    document.getElementById('pk-title').textContent = '♠ Mesa de Treino — '+(NSEATS===2?'Heads-up':NSEATS+' Jogadores');
     const el = document.getElementById('pk-log');
     el.innerHTML = S.log.map(l=>'<div>'+l+'</div>').join('');
     el.scrollTop = el.scrollHeight;
