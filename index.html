@@ -185,6 +185,8 @@
   .pk-style-tag.loose { color:#e8a94a; border-color:#e8a94a; }
   .pk-style-tag.tight { color:#7fb7e8; border-color:#7fb7e8; }
   .pk-style-tag.sticky { color:#c88fe8; border-color:#c88fe8; }
+  .pk-seat .pk-style-tag { margin-left:0; font-size:8px; padding:1px 6px; display:inline-block; margin-top:2px; background: rgba(0,0,0,0.35); }
+  @media (max-width: 640px){ .pk-seat .pk-style-tag { font-size:9px; } }
 
   .pk-outs-pill { background:#0a1a12; border:1px solid var(--gold-dim); color:var(--gold-dim); font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:7px 12px; border-radius:999px; cursor:pointer; font-family: inherit; transition:.15s; white-space:nowrap; }
   .pk-outs-pill:hover { color: var(--gold); border-color: var(--gold); }
@@ -233,6 +235,7 @@
     <details class="pk-details" id="pk-stats-details">
       <summary>Sua sessão <span class="chev">▾</span></summary>
       <div class="pk-stats" id="pk-stats"></div>
+      <div style="padding-bottom:8px;"><button class="pk-btn ghost" id="pk-reveal-btn" style="width:100%;" onclick="pkToggleReveal()">🎭 Revelar perfis dos jogadores</button></div>
       <div style="padding-bottom:12px;"><button class="pk-btn ghost" style="width:100%;" onclick="pkExportSession()">📋 Exportar histórico da sessão</button></div>
     </details>
   </div>
@@ -249,6 +252,31 @@
   const RCOL = {s:'b',c:'b',h:'r',d:'r'};
   const HAND_NAMES = ['Carta Alta','Par','Dois Pares','Trinca','Sequência','Flush','Full House','Quadra','Straight Flush'];
   const BOT_NAMES = ['Marina','Tiago','Bia','Rafa','Duda','Léo','Carol','Gabi'];
+
+  // ---- personalidades individuais ----
+  // Solto: paga fácil e blefa bastante; a aposta tem pouca relação com a força real.
+  // Grudento: quase nunca folda, mas quase não blefa — quando aumenta, a mão é de verdade.
+  // Sério: disciplinado, folda mais e blefa menos.
+  const STYLE_LABEL = { loose:'Solto', sticky:'Grudento', tight:'Sério' };
+  const STYLE_PARAMS = {
+    sticky: { looseness:0.26, foldEqFloor:0.06, foldEqChance:0.22, potOddsFoldChance:0.30,
+              raiseThresholdHigh:0.66, raiseThresholdVeryHigh:0.83, raiseChanceHigh:0.20, raiseChanceVeryHigh:0.62,
+              reraiseThreshold:0.80, reraiseChance:0.24, foldGateRaises:3 },
+    loose:  { looseness:0.20, foldEqFloor:0.10, foldEqChance:0.40, potOddsFoldChance:0.50,
+              raiseThresholdHigh:0.60, raiseThresholdVeryHigh:0.78, raiseChanceHigh:0.35, raiseChanceVeryHigh:0.55,
+              reraiseThreshold:0.72, reraiseChance:0.32, foldGateRaises:2 },
+    tight:  { looseness:0.02, foldEqFloor:0.24, foldEqChance:0.70, potOddsFoldChance:0.85,
+              raiseThresholdHigh:0.68, raiseThresholdVeryHigh:0.86, raiseChanceHigh:0.28, raiseChanceVeryHigh:0.45,
+              reraiseThreshold:0.80, reraiseChance:0.22, foldGateRaises:0 },
+  };
+  // Sorteia um perfil por bot a cada sessão. Com 3+ adversários garante pelo menos um de cada
+  // tipo; o resto é aleatório, então a composição da mesa muda de sessão para sessão.
+  function rollPersonalities(nBots){
+    const types = Object.keys(STYLE_PARAMS);
+    const pool = nBots>=types.length ? types.slice() : [];
+    while(pool.length < nBots) pool.push(types[Math.floor(Math.random()*types.length)]);
+    return shuffle(pool);
+  }
 
   function round2(x){ return Math.round(x*100)/100; }
   function roundToHalf(x){ return Math.round(x*2)/2; }
@@ -349,9 +377,10 @@
   let S = null;
 
   function freshPlayers(){
-    const arr = [{name:'Você', isHuman:true}];
+    const styles = rollPersonalities(NSEATS-1);
+    const arr = [{name:'Você', isHuman:true, style:null}];
     const shuffledNames = BOT_NAMES.slice();
-    for(let i=1;i<NSEATS;i++) arr.push({name: shuffledNames[i-1], isHuman:false});
+    for(let i=1;i<NSEATS;i++) arr.push({name: shuffledNames[i-1], isHuman:false, style: styles[i-1]});
     return arr.map(p=>({...p, chips:50, hole:[], folded:false, eliminated:false, allIn:false, bet:0, buyIns:1}));
   }
 
@@ -365,7 +394,7 @@
       showEquity: true, waitingHuman:false,
       stats: {handsPlayed:0, handsWon:0},
       gameOver:false,
-      tableStyle: 'loose',
+      revealStyles: false,
       lastResult: null,
       showOuts: false,
       fullSessionLog: [],
@@ -432,8 +461,6 @@
     S.stage='preflop';
     S.raisesThisStreet=0;
     S.lastResult=null;
-    const styleRoll = Math.random();
-    S.tableStyle = styleRoll<0.34 ? 'loose' : (styleRoll<0.67 ? 'sticky' : 'tight');
 
     S.showOuts = false;
     const active = activeIdx();
@@ -451,15 +478,13 @@
     const order = rotateFrom(bb, active); // starts at UTG, termina em SB, BB
     S.queue = order;
     S.log = [];
+    if(S.handNumber===1) log('🎭 Nova sessão: cada adversário recebeu uma personalidade secreta (solto, grudento ou sério). Observe como cada um joga.');
     log('— Mão #'+S.handNumber+' — cartas distribuídas. Dealer: '+S.players[S.dealerIndex].name+'.');
     flog('Stacks iniciais: '+stacksStr);
     flog('Blinds: '+blindsStr);
     if(!S.players[0].eliminated && S.players[0].hole.length===2){
       log('Suas cartas: '+S.players[0].hole.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')+' | Sua posição: '+positionName(0));
     }
-    if(S.tableStyle==='loose') log('🎲 Essa rodada a mesa está solta — galera paga mais fácil e blefa mais.');
-    else if(S.tableStyle==='sticky') log('🧠 Essa rodada a mesa está grudenta — quase ninguém folda, mas as apostas deles refletem mão de verdade.');
-    else log('🎯 Essa rodada a mesa está mais séria — menos gente pagando à toa.');
     render();
     processQueue();
   }
@@ -523,59 +548,17 @@
     const toCall = S.currentBet - p.bet;
     const callCost = Math.min(toCall, p.chips);
     const potOdds = callCost>0 ? callCost/(S.pot+callCost) : 0;
-    const isLoose = S.tableStyle==='loose';
-    const isSticky = S.tableStyle==='sticky';
-    // Mesa solta: chama fácil e blefa bastante, pouca correlação entre aposta e força real.
-    // Mesa grudenta: quase nunca folda (ainda mais "sticky" que a solta), mas quase não blefa —
-    //   quando aumentam é porque a mão é de verdade. Fold equity é praticamente zero.
-    // Mesa séria: mais disciplinada, folda mais e blefa menos.
-    let looseness, foldEqFloor, foldEqChance, potOddsFoldChance;
-    let raiseThresholdHigh, raiseThresholdVeryHigh, raiseChanceHigh, raiseChanceVeryHigh;
-    let reraiseThreshold, reraiseChance;
-    if(isSticky){
-      looseness = 0.26;
-      foldEqFloor = 0.06;
-      foldEqChance = 0.22;
-      potOddsFoldChance = 0.30;
-      raiseThresholdHigh = 0.66;
-      raiseThresholdVeryHigh = 0.83;
-      raiseChanceHigh = 0.20;
-      raiseChanceVeryHigh = 0.62;
-      reraiseThreshold = 0.80;
-      reraiseChance = 0.24;
-    } else if(isLoose){
-      looseness = 0.20;
-      foldEqFloor = 0.10;
-      foldEqChance = 0.4;
-      potOddsFoldChance = 0.5;
-      raiseThresholdHigh = 0.60;
-      raiseThresholdVeryHigh = 0.78;
-      raiseChanceHigh = 0.35;
-      raiseChanceVeryHigh = 0.55;
-      reraiseThreshold = 0.72;
-      reraiseChance = 0.32;
-    } else {
-      looseness = 0.02;
-      foldEqFloor = 0.24;
-      foldEqChance = 0.7;
-      potOddsFoldChance = 0.85;
-      raiseThresholdHigh = 0.68;
-      raiseThresholdVeryHigh = 0.86;
-      raiseChanceHigh = 0.28;
-      raiseChanceVeryHigh = 0.45;
-      reraiseThreshold = 0.80;
-      reraiseChance = 0.22;
-    }
+    const P = STYLE_PARAMS[p.style] || STYLE_PARAMS.tight;
     if(toCall<=0){
-      if(eq>raiseThresholdVeryHigh && Math.random()<raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
-      if(eq>raiseThresholdHigh && Math.random()<raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
+      if(eq>P.raiseThresholdVeryHigh && Math.random()<P.raiseChanceVeryHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.9))};
+      if(eq>P.raiseThresholdHigh && Math.random()<P.raiseChanceHigh) return {action:'raise', amount: p.bet+Math.min(p.chips, roundToHalf((S.pot||2)*0.55))};
       return {action:'check', amount:0};
     } else {
       const capped = Math.min(toCall, p.chips);
-      const raiseGate = isSticky ? S.raisesThisStreet>=3 : (isLoose ? S.raisesThisStreet>=2 : true);
-      if(eq + looseness < potOdds && raiseGate && Math.random()<potOddsFoldChance) return {action:'fold', amount:0};
-      if(eq<foldEqFloor && Math.random()<foldEqChance) return {action:'fold', amount:0};
-      if(eq>reraiseThreshold && Math.random()<reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
+      const raiseGate = S.raisesThisStreet >= P.foldGateRaises;
+      if(eq + P.looseness < potOdds && raiseGate && Math.random()<P.potOddsFoldChance) return {action:'fold', amount:0};
+      if(eq<P.foldEqFloor && Math.random()<P.foldEqChance) return {action:'fold', amount:0};
+      if(eq>P.reraiseThreshold && Math.random()<P.reraiseChance && S.raisesThisStreet<3) return {action:'raise', amount: p.bet+capped+Math.min(p.chips-capped, roundToHalf((S.pot||2)*0.75))};
       return {action:'call', amount:0};
     }
   }
@@ -752,6 +735,7 @@
     document.getElementById('pk-equity-toggle').classList.toggle('on', S.showEquity);
     render();
   };
+  window.pkToggleReveal = function(){ S.revealStyles = !S.revealStyles; if(S.revealStyles && S.stage!=='idle') S.everRevealed = true; render(); };
   window.pkNewHand = function(){ newHand(); };
   window.pkRestart = function(){ initState(); render(); };
   window.pkSetPlayers = function(n){ if(S.stage!=='idle') return; NSEATS = n; S.players = freshPlayers(); render(); };
@@ -830,9 +814,9 @@
     {key:'HU', label:'HU (BTN/SB)', threshold:80, late:true},
   ];
   const RW_STYLES = {
-    loose: {label:'Mesa solta', raiseMult:1.1, specMult:1.2, note:'Eles pagam fácil e blefam mais — isolar um pouco mais largo compensa, mas dimensione as apostas de valor com folga.'},
-    sticky:{label:'Mesa grudenta', raiseMult:0.85, specMult:1.3, note:'Quase ninguém folda e quase ninguém blefa. Abra mais linear (mais valor, menos blefe) e use mãos especulativas em posição só pela odds implícita.'},
-    tight: {label:'Mesa séria', raiseMult:0.9, specMult:1.0, note:'Mais gente folda e blefa menos. Um range de abertura padrão funciona bem, sem precisar alargar por odds implícitas.'},
+    loose: {label:'Vs. soltos', raiseMult:1.1, specMult:1.2, note:'Eles pagam fácil e blefam mais — isolar um pouco mais largo compensa, mas dimensione as apostas de valor com folga.'},
+    sticky:{label:'Vs. grudentos', raiseMult:0.85, specMult:1.3, note:'Quase ninguém folda e quase ninguém blefa. Abra mais linear (mais valor, menos blefe) e use mãos especulativas em posição só pela odds implícita.'},
+    tight: {label:'Vs. sérios', raiseMult:0.9, specMult:1.0, note:'Mais gente folda e blefa menos. Um range de abertura padrão funciona bem, sem precisar alargar por odds implícitas.'},
   };
   let rwState = { posKey:'CO', style:'sticky', selectedLabel:null };
 
@@ -875,7 +859,7 @@
       const c = cells.find(x=>x.label===rwState.selectedLabel);
       const action = rwActionFor(c, pos, style);
       const actionText = {abrir:'Abrir / aumentar', defender:'Defender / pagar', pagar:'Pagar por odds implícitas (mão especulativa em posição)', fold:'Fold'}[action];
-      detail = '<div class="pk-modal-note" style="margin-top:8px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; padding:8px 10px;"><b class="mono" style="color:var(--gold)">'+c.label+'</b> — top <b class="mono">'+c.pct.toFixed(1)+'%</b> das mãos iniciais. Em '+pos.label+' numa '+style.label.toLowerCase()+': <b>'+actionText+'</b>.</div>';
+      detail = '<div class="pk-modal-note" style="margin-top:8px; background:#0a1a12; border:1px solid #2a4436; border-radius:8px; padding:8px 10px;"><b class="mono" style="color:var(--gold)">'+c.label+'</b> — top <b class="mono">'+c.pct.toFixed(1)+'%</b> das mãos iniciais. Em '+pos.label+', '+style.label.toLowerCase()+': <b>'+actionText+'</b>.</div>';
     }
 
     const el = document.getElementById('pk-export-modal');
@@ -883,7 +867,7 @@
       '<div class="pk-modal-overlay" onclick="if(event.target===this) pkCloseExportModal()">' +
         '<div class="pk-modal" style="max-width:560px;">' +
           '<h3>Grade de mãos — pré-flop</h3>' +
-          '<div class="pk-modal-note">Aproximação didática (fórmula de Chen + frequências de abertura padrão), ajustada aos 3 estilos de mesa do simulador. Não é um solver de GTO de verdade — pensa nisso como um guia de referência, não uma verdade absoluta.</div>' +
+          '<div class="pk-modal-note">Aproximação didática (fórmula de Chen + frequências de abertura padrão), ajustada aos 3 perfis de jogador do simulador. Escolha o perfil que predomina entre quem ainda vai agir depois de você. Não é um solver de GTO de verdade — pensa nisso como um guia de referência, não uma verdade absoluta.</div>' +
           '<div style="display:flex; flex-wrap:wrap; gap:6px;">'+posBtns+'</div>' +
           '<div style="display:flex; flex-wrap:wrap; gap:6px;">'+styleBtns+'</div>' +
           '<div class="pk-modal-note" style="font-style:italic;">'+style.note+'</div>' +
@@ -909,8 +893,11 @@
     text += 'Jogadores na mesa: '+NSEATS+' | Blinds: R$0,50/R$1,00 | Stack inicial: R$50,00 (até 3 buy-ins)\n';
     text += 'Mãos jogadas: '+S.stats.handsPlayed+' | Taxa de vitória: '+wr+'%\n';
     text += 'Saldo da sessão: '+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+' | Fichas atuais: R$'+fmtMoney(p.chips)+' | Buy-ins: '+p.buyIns+'/3\n';
+    text += 'Perfis revelados durante a sessão: '+(S.everRevealed?'sim':'não')+'\n';
     text += '===========================================================\n\n';
     text += S.fullSessionLog.length ? S.fullSessionLog.join('\n') : '(nenhuma mão jogada ainda)';
+    text += '\n\n===== GABARITO — PERSONALIDADES DESTA SESSÃO =====\n';
+    text += S.players.filter(pl=>!pl.isHuman).map(pl=>pl.name+': '+STYLE_LABEL[pl.style]).join('\n');
     text += '\n\n===== FIM DO HISTÓRICO ('+S.fullSessionLog.length+' linhas de log) =====';
     showExportModal(text);
   };
@@ -965,6 +952,7 @@
 
   function renderTable(){
     const table = document.getElementById('pk-table');
+    const showStyles = S.revealStyles || S.gameOver;
     let html = '';
     html += '<div class="pk-stage-tag">'+(S.stage==='idle'?'Aguardando início':S.stage)+'</div>';
     html += '<div class="pk-pot"><div class="amt mono">R$'+fmtMoney(S.pot)+'</div><div class="lbl">Pote</div></div>';
@@ -994,6 +982,7 @@
       html += '</div>';
       html += '<div class="chips mono">'+(isElim?'—':'R$'+fmtMoney(p.chips))+'</div>';
       if(!isElim && p.bet>0) html += '<div class="bet-chip mono">R$'+fmtMoney(p.bet)+'</div>';
+      if(showStyles && !p.isHuman) html += '<div><span class="pk-style-tag '+p.style+'">'+STYLE_LABEL[p.style]+'</span></div>';
       html += '</div>';
     }
     if(S.dealerIndex>=0){
@@ -1004,7 +993,7 @@
     }
     if(S.gameOver){
       const reason = S.players[0].eliminated ? 'Você usou seus 3 buy-ins (R$50 cada) e ficou sem fichas.' : 'Todos os adversários foram eliminados — você venceu a mesa! 🏆';
-      html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">'+reason+' Isso acontece — revise a sessão no histórico e recomece quando quiser.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
+      html += '<div class="pk-overlay"><h2 style="color:var(--gold)">Fim de sessão</h2><p style="color:var(--muted); max-width:340px;">'+reason+' Isso acontece — revise a sessão no histórico e recomece quando quiser. Na próxima sessão as personalidades são sorteadas de novo.</p><button class="pk-btn next" onclick="pkRestart()">Reiniciar sessão</button></div>';
     }
     table.innerHTML = html;
   }
@@ -1113,8 +1102,7 @@
     const el = document.getElementById('pk-log');
     el.innerHTML = S.log.map(l=>'<div>'+l+'</div>').join('');
     el.scrollTop = el.scrollHeight;
-    const styleTag = S.stage==='idle' ? '' : (S.tableStyle==='loose' ? '<span class="pk-style-tag loose">Mesa solta</span>' : (S.tableStyle==='sticky' ? '<span class="pk-style-tag sticky">Mesa grudenta</span>' : '<span class="pk-style-tag tight">Mesa séria</span>'));
-    document.getElementById('pk-handinfo').innerHTML = 'Mão #'+S.handNumber+styleTag;
+    document.getElementById('pk-handinfo').textContent = 'Mão #'+S.handNumber;
   }
 
   function renderStats(){
@@ -1128,6 +1116,8 @@
       '<div class="pk-stat"><div class="v mono" style="color:'+(net>=0?'#4caf7d':'var(--red)')+'">'+(net>=0?'+':'-')+'R$'+fmtMoney(Math.abs(net))+'</div><div class="l">Saldo da sessão</div></div>'+
       '<div class="pk-stat"><div class="v mono">R$'+fmtMoney(p.chips)+'</div><div class="l">Fichas atuais</div></div>'+
       '<div class="pk-stat"><div class="v mono">'+p.buyIns+'/3</div><div class="l">Buy-ins usados</div></div>';
+    const rb = document.getElementById('pk-reveal-btn');
+    if(rb) rb.textContent = S.revealStyles ? '🙈 Esconder perfis dos jogadores' : '🎭 Revelar perfis dos jogadores';
   }
 
   render();
