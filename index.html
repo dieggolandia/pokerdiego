@@ -485,6 +485,9 @@
     if(!S.players[0].eliminated && S.players[0].hole.length===2){
       log('Suas cartas: '+S.players[0].hole.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')+' | Sua posição: '+positionName(0));
     }
+    S.streetLogStart = S.fullSessionLog.length;
+    S.streetAllChecks = true;
+    S.streetCheckCount = 0;
     render();
     processQueue();
   }
@@ -499,13 +502,14 @@
 
   function applyAction(idx, action, raiseTo){
     const p = S.players[idx];
-    if(action==='fold'){ p.folded=true; logAct(p.name+' desistiu (fold).'); }
-    else if(action==='check'){ logAct(p.name+' passou (check).'); }
+    if(action==='fold'){ p.folded=true; logAct(p.name+' fold.'); S.streetAllChecks=false; }
+    else if(action==='check'){ logAct(p.name+' check.'); S.streetCheckCount=(S.streetCheckCount||0)+1; }
     else if(action==='call'){
       const toCall = Math.min(S.currentBet-p.bet, p.chips);
       p.chips=round2(p.chips-toCall); p.bet=round2(p.bet+toCall); p.invested=round2((p.invested||0)+toCall); S.pot=round2(S.pot+toCall);
       if(p.chips===0) p.allIn=true;
-      logAct(p.name+' pagou R$'+fmtMoney(toCall)+(p.allIn?' (all-in)':'')+'.');
+      logAct(p.name+' pag R$'+fmtMoney(toCall)+(p.allIn?' (all-in)':'')+'.');
+      S.streetAllChecks=false;
     } else if(action==='raise'){
       const cost = Math.min(raiseTo-p.bet, p.chips);
       p.chips=round2(p.chips-cost); p.bet=round2(p.bet+cost); p.invested=round2((p.invested||0)+cost); S.pot=round2(S.pot+cost);
@@ -517,6 +521,7 @@
         S.queue = rotateFrom(idx, others);
       }
       logAct(p.name+(isBet?' apostou R$':' aumentou para R$')+fmtMoney(p.bet)+(p.allIn?' (all-in)':'')+'.');
+      S.streetAllChecks=false;
     }
     p.acted=true;
   }
@@ -563,13 +568,27 @@
     }
   }
 
+  // Se a street inteira foi composta só de checks, substitui as linhas individuais
+  // por um único resumo (preserva o pote, perde só a repetição linha-por-jogador).
+  function collapseCheckStreet(){
+    if(S.streetLogStart==null) return;
+    if(S.streetAllChecks && (S.streetCheckCount||0)>0 && S.fullSessionLog.length>S.streetLogStart){
+      const stageLbl = STAGE_LBL[S.stage]||S.stage;
+      S.fullSessionLog.length = S.streetLogStart;
+      S.fullSessionLog.push('  ['+stageLbl+'] Todos passaram (pote: R$'+fmtMoney(S.pot)+').');
+    }
+  }
   function advanceStreet(){
+    collapseCheckStreet();
     S.players.forEach(p=>{ p.bet=0; p.acted=false; });
     S.currentBet=0; S.raisesThisStreet=0;
     if(S.stage==='preflop'){ S.deck.pop(); S.community.push(S.deck.pop(),S.deck.pop(),S.deck.pop()); S.stage='flop'; log('— Flop: '+S.community.map(c=>rlabel(c.r)+SYM[c.s]).join(' ')); }
     else if(S.stage==='flop'){ S.deck.pop(); S.community.push(S.deck.pop()); S.stage='turn'; log('— Turn: '+rlabel(S.community[3].r)+SYM[S.community[3].s]); }
     else if(S.stage==='turn'){ S.deck.pop(); S.community.push(S.deck.pop()); S.stage='river'; log('— River: '+rlabel(S.community[4].r)+SYM[S.community[4].s]); }
     else if(S.stage==='river'){ doShowdown(); return; }
+    S.streetLogStart = S.fullSessionLog.length;
+    S.streetAllChecks = true;
+    S.streetCheckCount = 0;
     const toAct = activeIdx().filter(i=>!S.players[i].allIn);
     if(toAct.length<=1){
       // Ninguém mais pode apostar (todos all-in, ou só um jogador com fichas): abre as cartas e corre o board até o river
@@ -698,7 +717,9 @@
   // ---- human controls ----
   window.pkHumanAct = function(action){
     if(!S.waitingHuman) return;
-    logHumanContext();
+    // Check sem nada a pagar: a linha de contexto não traz nada que a linha de ação
+    // (check, sem custo) já não diga, então pulamos para economizar espaço no log.
+    if(action!=='check') logHumanContext();
     S.queue.shift();
     applyAction(0, action, 0);
     S.waitingHuman=false;
